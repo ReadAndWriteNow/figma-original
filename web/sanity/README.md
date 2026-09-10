@@ -12,12 +12,16 @@
 3. 프로젝트 이름 (예: `hanwoori-reading`)을 입력하고 데이터셋을 기본값 `production`으로 만듭니다.
 4. 생성된 프로젝트의 **Project ID**를 복사합니다.
 
-### API 토큰 발급 (웹사이트 관리자 모드에서 Sanity로 바로 저장할 때 필요)
+### API 토큰 발급 및 CORS 도메인 허용 (필수)
 1. Sanity 프로젝트 대시보드 -> **API** 메뉴 -> **Tokens** 섹션으로 이동합니다.
 2. **Add API token** 클릭:
    - Name: `web-admin`
-   - Permissions: **Editor** 선택
-3. 발급된 토큰 문자열을 복사합니다.
+   - Permissions: **Editor** 선택 후 생성된 토큰 복사.
+3. **CORS Origins** 섹션으로 이동하여 **Add CORS origin** 클릭:
+   - Origin: `https://*.vercel.app` (또는 실제 Vercel 배포 도메인)
+   - Allow credentials: 체크
+   - 로컬 테스트용으로 `http://localhost:3000`도 추가해 두시면 좋습니다.
+   *(※ CORS 설정을 하지 않으면 브라우저에서 Sanity 데이터 요청이 보안상 차단될 수 있습니다)*
 
 ---
 

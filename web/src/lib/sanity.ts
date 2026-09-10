@@ -15,23 +15,35 @@ const LOCAL_STORAGE_REVIEWS_KEY = 'hanwoori_reviews_list_v1';
 
 // 환경 변수 또는 localStorage에서 Sanity 설정 로드
 export function getSanityConfig(): SanityConfig | null {
+  const envProjectId = import.meta.env.VITE_SANITY_PROJECT_ID;
+  const envDataset = import.meta.env.VITE_SANITY_DATASET || 'production';
+  const envApiVersion = import.meta.env.VITE_SANITY_API_VERSION || '2024-03-01';
+  const envToken = import.meta.env.VITE_SANITY_TOKEN || '';
+
   try {
     const local = localStorage.getItem(LOCAL_STORAGE_SANITY_CONFIG_KEY);
     if (local) {
       const parsed = JSON.parse(local);
-      if (parsed.projectId) return parsed;
+      if (parsed.projectId) {
+        return {
+          projectId: parsed.projectId,
+          dataset: parsed.dataset || envDataset,
+          apiVersion: parsed.apiVersion || envApiVersion,
+          token: parsed.token || envToken,
+          useCdn: false,
+        };
+      }
     }
   } catch (e) {
     console.warn('Failed to parse local Sanity config', e);
   }
 
-  const envProjectId = import.meta.env.VITE_SANITY_PROJECT_ID;
   if (envProjectId) {
     return {
       projectId: envProjectId,
-      dataset: import.meta.env.VITE_SANITY_DATASET || 'production',
-      apiVersion: import.meta.env.VITE_SANITY_API_VERSION || '2024-03-01',
-      token: import.meta.env.VITE_SANITY_TOKEN || '',
+      dataset: envDataset,
+      apiVersion: envApiVersion,
+      token: envToken,
       useCdn: false,
     };
   }
