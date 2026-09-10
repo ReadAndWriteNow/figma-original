@@ -60,67 +60,151 @@ function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
-function MapLoader() {
+function KakaoMap({ address }: { address?: string }) {
+  const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const containerId = "daumRoughmapContainer1788803690193";
+
   useEffect(() => {
-    const containerId = "daumRoughmapContainer1788803690193";
-    let isMounted = true;
+    let isCancelled = false;
 
-    function renderMap() {
-      if (!isMounted) return;
-      const el = document.getElementById(containerId);
-      if (!el) return;
-      // 이미 지도가 렌더링되어 있다면 중복 렌더링 방지
-      if (el.querySelector(".roughmap_maker_label") || el.children.length > 0) return;
+    async function initializeRoughMap() {
+      try {
+        const c = window.location.protocol === "https:" ? "https:" : "http:";
+        const a = "2851f17d_1787547759105";
+        const p = "prod";
 
-      if ((window as any).daum?.roughmap?.Lander) {
-        try {
-          new (window as any).daum.roughmap.Lander({
-            timestamp: "1788803690193",
-            key: "2ihvyw7i9ytd",
-            mapWidth: "100%",
-            mapHeight: "350",
-          }).render();
-        } catch (err) {
-          console.warn("Kakao map render error:", err);
+        (window as any).daum = (window as any).daum || {};
+        (window as any).daum.roughmap = (window as any).daum.roughmap || {
+          phase: p,
+          cdn: a,
+          URL_KEY_DATA_LOAD_PRE: `${c}//t1.kakaocdn.net/roughmap/`,
+          url_protocal: c,
+          url_cdn_domain: "//t1.kakaocdn.net",
+        };
+
+        // roughmapLoader.js는 document.write를 호출하여 비동기 스크립트 실행 환경(Chrome/Vercel 등)에서 차단됨
+        // 따라서 roughmapLander.js를 DOM에 직접 주입하여 차단을 완벽하게 우회
+        if (!(window as any).daum?.roughmap?.Lander) {
+          await new Promise<void>((resolve, reject) => {
+            const landerSrc = `${c}//t1.kakaocdn.net/kakaomapweb/roughmap/place/${p}/${a}/roughmapLander.js`;
+            let script = document.querySelector(`script[src*="roughmapLander.js"]`) as HTMLScriptElement | null;
+            if (!script) {
+              script = document.createElement("script");
+              script.charset = "UTF-8";
+              script.src = landerSrc;
+              script.async = true;
+              script.onload = () => resolve();
+              script.onerror = (e) => reject(e);
+              document.head.appendChild(script);
+            } else {
+              const checkTimer = setInterval(() => {
+                if ((window as any).daum?.roughmap?.Lander) {
+                  clearInterval(checkTimer);
+                  resolve();
+                }
+              }, 100);
+              setTimeout(() => {
+                clearInterval(checkTimer);
+                if ((window as any).daum?.roughmap?.Lander) resolve();
+                else reject(new Error("Timeout loading Kakao Map Lander"));
+              }, 5000);
+            }
+          });
+        }
+
+        if (isCancelled) return;
+
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        // 이미 지도가 렌더링되어 있다면 중복 실행 방지
+        if (container.querySelector(".roughmap_maker_label") || container.querySelector(".roughmap_inner")) {
+          setLoading(false);
+          return;
+        }
+
+        // 이전 잔여 내용 정리
+        container.innerHTML = "";
+
+        // 카카오 공식 약도 Lander 실행
+        new (window as any).daum.roughmap.Lander({
+          timestamp: "1788803690193",
+          key: "2ihvyw7i9ytd",
+          mapWidth: "100%",
+          mapHeight: "350",
+        }).render();
+
+        // 렌더링 완료 감지
+        let pollCount = 0;
+        const pollTimer = setInterval(() => {
+          pollCount++;
+          const el = document.getElementById(containerId);
+          if (el && (el.querySelector(".roughmap_inner") || el.children.length > 0)) {
+            clearInterval(pollTimer);
+            if (!isCancelled) setLoading(false);
+          } else if (pollCount > 35) {
+            clearInterval(pollTimer);
+            if (!isCancelled) setLoading(false);
+          }
+        }, 150);
+
+      } catch (err) {
+        console.error("Kakao roughmap initialization failed:", err);
+        if (!isCancelled) {
+          setLoading(false);
+          setHasError(true);
         }
       }
     }
 
-    if ((window as any).daum?.roughmap?.Lander) {
-      renderMap();
-      return;
-    }
-
-    const scriptId = "daum-roughmap-loader-script";
-    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
-    if (!script) {
-      script = document.createElement("script");
-      script.id = scriptId;
-      script.charset = "UTF-8";
-      script.src = "https://ssl.daumcdn.net/dmaps/map_js_init/roughmapLoader.js";
-      script.onload = () => {
-        if (isMounted) renderMap();
-      };
-      document.head.appendChild(script);
-    } else {
-      const timer = setInterval(() => {
-        if ((window as any).daum?.roughmap?.Lander) {
-          clearInterval(timer);
-          if (isMounted) renderMap();
-        }
-      }, 150);
-      return () => {
-        isMounted = false;
-        clearInterval(timer);
-      };
-    }
+    const t = setTimeout(() => {
+      initializeRoughMap();
+    }, 50);
 
     return () => {
-      isMounted = false;
+      isCancelled = true;
+      clearTimeout(t);
     };
   }, []);
 
-  return null;
+  return (
+    <div className="relative w-full rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-[#F8FAFC]">
+      {/* 카카오 지도 본체 컨테이너 */}
+      <div
+        id={containerId}
+        className="root_daum_roughmap root_daum_roughmap_landing w-full min-h-[350px]"
+        style={{ minHeight: "350px", width: "100%" }}
+      />
+
+      {/* 로딩 상태 표시기 */}
+      {loading && !hasError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/90 backdrop-blur-[1px] z-10 pointer-events-none">
+          <div className="w-8 h-8 border-3 border-[#FF7F50] border-t-transparent rounded-full animate-spin mb-2" />
+          <p className="text-xs text-[#6B7280] font-semibold">카카오맵 지도를 불러오는 중입니다...</p>
+        </div>
+      )}
+
+      {/* 로드 실패 시 대체 안내 */}
+      {hasError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-amber-50/80 z-10">
+          <span className="text-3xl mb-2">📍</span>
+          <p className="text-sm font-bold text-[#1E2B3A]">한우리독서토론논술 산내푸르지오 교습소</p>
+          <p className="text-xs text-[#6B7280] mt-1 mb-4">
+            {address || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호"}
+          </p>
+          <a
+            href={`https://map.kakao.com/link/search/${encodeURIComponent(address || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-2 bg-[#FF7F50] text-white text-xs font-bold rounded-xl shadow hover:bg-[#E8623A] transition"
+          >
+            카카오맵에서 위치 확인하기 →
+          </a>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ═══════════════════════════════════════
@@ -314,9 +398,8 @@ function MobileLayout({
             <MobileInfoItem icon="🚗" label="주차" value={values["info.parking"] || "건물 뒷편 주차장 이용 가능"} />
           </ul>
         </div>
-        <div className="mt-4 rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-          <div id="daumRoughmapContainer1788803690193" className="root_daum_roughmap root_daum_roughmap_landing w-full" />
-          <MapLoader />
+        <div className="mt-4">
+          <KakaoMap address={values["info.address"]} />
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <a
@@ -600,9 +683,8 @@ function PCLayout({
             <PCInfoItem icon="🚗" label="주차 정보" value={values["info.parking"] || "건물 뒷편 주차장 이용 가능"} />
           </ul>
         </div>
-        <div className="mt-6 rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-          <div id="daumRoughmapContainer1788803690193" className="root_daum_roughmap root_daum_roughmap_landing w-full" />
-          <MapLoader />
+        <div className="mt-6">
+          <KakaoMap address={values["info.address"]} />
         </div>
         <div className="mt-4 flex items-center justify-end gap-3">
           <a
