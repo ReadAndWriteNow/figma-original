@@ -12,12 +12,31 @@ const LOCAL_STORAGE_SANITY_CONFIG_KEY = 'hanwoori_sanity_config';
 const LOCAL_STORAGE_SITE_DATA_KEY = 'hanwoori_site_content_v1';
 const LOCAL_STORAGE_QNA_KEY = 'hanwoori_qna_list_v1';
 const LOCAL_STORAGE_REVIEWS_KEY = 'hanwoori_reviews_list_v1';
+export const LOCAL_STORAGE_PERMANENT_TOKEN_KEY = 'hanwoori_admin_token_permanent';
 
 // Sanity Project ID 기본값 (Vercel 환경 변수가 없을 때 모든 방문자에게 자동 적용할 기본값)
 export const FALLBACK_PROJECT_ID = '8vs8axo9';
 
+export function getPermanentToken(): string {
+  try {
+    return localStorage.getItem(LOCAL_STORAGE_PERMANENT_TOKEN_KEY) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+export function setPermanentToken(token: string) {
+  try {
+    if (token && token.trim()) {
+      localStorage.setItem(LOCAL_STORAGE_PERMANENT_TOKEN_KEY, token.trim());
+    } else {
+      localStorage.removeItem(LOCAL_STORAGE_PERMANENT_TOKEN_KEY);
+    }
+  } catch (e) {}
+}
+
 // Sanity 설정 정제 (공백 제거, URL에서 Project ID 추출, Token 정제 등)
-export function cleanSanityConfig(raw: SanityConfig): SanityConfig {
+export function cleanSanityConfig(raw: Partial<SanityConfig>): SanityConfig {
   let pid = (raw.projectId || '').trim();
   // 사용자가 URL을 통째로 붙여넣은 경우 (예: https://www.sanity.io/manage/project/x9q8w2y1)
   if (pid.includes('/project/')) {
@@ -41,8 +60,14 @@ export function cleanSanityConfig(raw: SanityConfig): SanityConfig {
     token = token.slice(1, -1).trim();
   }
 
+  // 만약 토큰이 비어있다면 영구 보관된 토큰이 있는지 확인하여 자동 채택
+  if (!token) {
+    const perm = getPermanentToken();
+    if (perm) token = perm;
+  }
+
   return {
-    projectId: pid,
+    projectId: pid || FALLBACK_PROJECT_ID,
     dataset: ds,
     apiVersion: raw.apiVersion || '2024-03-01',
     token: token || undefined,
@@ -57,8 +82,39 @@ export function getSanityConfig(): SanityConfig | null {
   const envApiVersion = import.meta.env.VITE_SANITY_API_VERSION || '2024-03-01';
   const envToken = import.meta.env.VITE_SANITY_TOKEN || '';
 
-  // 1. URL 쿼리 파라미터 확인 (?sanity=프로젝트ID 또는 ?sanityProject=프로젝트ID)
-  // 카카오톡이나 모바일 기기로 공유할 때 자동으로 해당 기기에 Sanity 설정을 심어줌
+  // 1. URL hash 또는 query에서 adminToken 자동 감지 및 스마트폰에 자동 영구 주입
+  // 예: https://site/#adminToken=sk... 또는 ?adminToken=sk...
+  let permanentToken = getPermanentToken();
+  if (typeof window !== 'undefined') {
+    try {
+      let tokenFromUrl = '';
+      if (window.location.hash.includes('adminToken=')) {
+        const match = window.location.hash.match(/adminToken=([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          tokenFromUrl = match[1];
+          // 보안 및 깔끔한 주소 유지를 위해 URL에서 해시 제거
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      }
+      if (!tokenFromUrl) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const qToken = urlParams.get('adminToken') || urlParams.get('token');
+        if (qToken) {
+          tokenFromUrl = qToken;
+        }
+      }
+      if (tokenFromUrl) {
+        setPermanentToken(tokenFromUrl);
+        permanentToken = tokenFromUrl;
+      }
+    } catch (e) {
+      console.warn('URL 토큰 자동 감지 중 오류:', e);
+    }
+  }
+
+  const effectiveToken = permanentToken || envToken;
+
+  // 2. URL 쿼리 파라미터 확인 (?sanity=프로젝트ID)
   if (typeof window !== 'undefined') {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -68,7 +124,7 @@ export function getSanityConfig(): SanityConfig | null {
           projectId: urlPid,
           dataset: urlParams.get('dataset') || envDataset,
           apiVersion: envApiVersion,
-          token: envToken,
+          token: effectiveToken,
           useCdn: false,
         });
         localStorage.setItem(LOCAL_STORAGE_SANITY_CONFIG_KEY, JSON.stringify(cleaned));
@@ -79,17 +135,18 @@ export function getSanityConfig(): SanityConfig | null {
     }
   }
 
-  // 2. localStorage 확인
+  // 3. localStorage 확인
   try {
     const local = localStorage.getItem(LOCAL_STORAGE_SANITY_CONFIG_KEY);
     if (local) {
       const parsed = JSON.parse(local);
       if (parsed.projectId) {
+        const tokenToUse = parsed.token || effectiveToken;
         return cleanSanityConfig({
           projectId: parsed.projectId,
           dataset: parsed.dataset || envDataset,
           apiVersion: parsed.apiVersion || envApiVersion,
-          token: parsed.token || envToken,
+          token: tokenToUse,
           useCdn: false,
         });
       }
@@ -98,13 +155,13 @@ export function getSanityConfig(): SanityConfig | null {
     console.warn('Failed to parse local Sanity config', e);
   }
 
-  // 3. 환경 변수 또는 코드 내 기본값 확인
+  // 4. 환경 변수 또는 코드 내 기본값(FALLBACK_PROJECT_ID: 8vs8axo9) 확인
   if (envProjectId) {
     return cleanSanityConfig({
       projectId: envProjectId,
       dataset: envDataset,
       apiVersion: envApiVersion,
-      token: envToken,
+      token: effectiveToken,
       useCdn: false,
     });
   }
@@ -114,6 +171,15 @@ export function getSanityConfig(): SanityConfig | null {
 
 export function saveLocalSanityConfig(config: SanityConfig) {
   const cleaned = cleanSanityConfig(config);
+  // 토큰이 들어있다면 영구 보관소에도 함께 저장
+  if (cleaned.token) {
+    setPermanentToken(cleaned.token);
+  } else {
+    const perm = getPermanentToken();
+    if (perm) {
+      cleaned.token = perm;
+    }
+  }
   localStorage.setItem(LOCAL_STORAGE_SANITY_CONFIG_KEY, JSON.stringify(cleaned));
 }
 
@@ -273,6 +339,7 @@ export async function fetchSanityData(): Promise<{
   qnaList?: any[];
   reviews?: any[];
   adminPassword?: string;
+  adminToken?: string;
 } | null> {
   const client = getSanityClient();
   if (!client) return null;
@@ -284,7 +351,7 @@ export async function fetchSanityData(): Promise<{
       client.fetch('*[_type == "reviewItem"] | order(date desc, _createdAt desc)'),
     ]);
 
-    const result: { values?: Record<string, string>; qnaList?: any[]; reviews?: any[]; adminPassword?: string } = {};
+    const result: { values?: Record<string, string>; qnaList?: any[]; reviews?: any[]; adminPassword?: string; adminToken?: string } = {};
 
     // 1. values 복원 (valuesJson 우선, 없으면 values 객체 복원)
     if (siteSettings?.valuesJson) {
@@ -307,6 +374,12 @@ export async function fetchSanityData(): Promise<{
     // 관리자 비밀번호 동기화
     if (siteSettings?.adminPassword && typeof siteSettings.adminPassword === 'string') {
       result.adminPassword = siteSettings.adminPassword;
+    }
+
+    // 관리자 토큰 동기화 (PC에서 등록하면 모바일/모든 접속 주소에서 영구 자동 채택)
+    if (siteSettings?.adminToken && typeof siteSettings.adminToken === 'string') {
+      result.adminToken = siteSettings.adminToken;
+      setPermanentToken(siteSettings.adminToken);
     }
 
     if (Array.isArray(qnaItems) && qnaItems.length > 0) {
@@ -377,6 +450,10 @@ export async function pushDataToSanity(
     };
     if (adminPassword) {
       doc.adminPassword = adminPassword;
+    }
+    const tokenToSave = config.token || getPermanentToken();
+    if (tokenToSave) {
+      doc.adminToken = tokenToSave;
     }
 
     await client.createOrReplace(doc);
@@ -465,6 +542,38 @@ export async function pushDataToSanity(
       errorType: 'unknown',
       message: `Sanity 저장 실패 (${statusCode ? `HTTP ${statusCode}` : ''}): ${bodyError || errStr}`,
     };
+  }
+}
+
+// PC에서 입력된 토큰을 Sanity 클라우드에 영구 동기화하여 모바일 및 모든 접속 기기/주소에서 자동 사용
+export async function saveTokenToSanity(token: string): Promise<{ success: boolean; message: string }> {
+  const trimmed = (token || '').trim();
+  if (!trimmed) {
+    return { success: false, message: '토큰이 비어있습니다.' };
+  }
+  const config = cleanSanityConfig({ projectId: FALLBACK_PROJECT_ID, token: trimmed });
+  const client = getSanityClient(config);
+  if (!client) {
+    return { success: false, message: 'Sanity 클라이언트를 생성할 수 없습니다.' };
+  }
+  try {
+    const existing = await client.fetch('*[_type == "siteSettings"][0]._id');
+    if (existing) {
+      await client.patch('siteSettings').set({ adminToken: trimmed, updatedAt: new Date().toISOString() }).commit();
+    } else {
+      await client.createOrReplace({
+        _id: 'siteSettings',
+        _type: 'siteSettings',
+        title: '웹사이트 설정',
+        adminToken: trimmed,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    setPermanentToken(trimmed);
+    return { success: true, message: 'Sanity 클라우드에 토큰이 영구 등록되었습니다.' };
+  } catch (err: any) {
+    console.warn('saveTokenToSanity error:', err);
+    return { success: false, message: err?.message || 'Sanity 토큰 동기화 실패' };
   }
 }
 

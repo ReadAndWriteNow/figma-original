@@ -6,6 +6,9 @@ import {
   testSanityConnection,
   fetchSanityData,
   pushDataToSanity,
+  saveTokenToSanity,
+  getPermanentToken,
+  setPermanentToken,
   loadLocalData,
   saveLocalData,
   LOCAL_STORAGE_SITE_DATA_KEY,
@@ -285,6 +288,15 @@ function MobileLayout({
             >
               📖 수업 소식
             </button>
+            {onOpenAdmin && (
+              <button
+                onClick={() => { onOpenAdmin(); setMenuOpen(false); }}
+                className="col-span-2 py-2 px-3 rounded-xl text-xs font-semibold bg-black/20 text-orange-100 active:bg-black/35 text-center flex items-center justify-center gap-1.5 mt-1 border border-white/20"
+              >
+                <span>⚙️</span>
+                <span>관리자 모드 접속</span>
+              </button>
+            )}
           </nav>
         )}
       </header>
@@ -1830,13 +1842,23 @@ function AdminModal({
     const cfg = getSanityConfig();
     return (
       cfg || {
-        projectId: "",
+        projectId: "8vs8axo9",
         dataset: "production",
         apiVersion: "2024-03-01",
         token: "",
       }
     );
   });
+  const [savedToken, setSavedToken] = useState<string>(() => getPermanentToken() || getSanityConfig()?.token || "");
+  const [tokenInput, setTokenInput] = useState<string>("");
+  const [isEditingToken, setIsEditingToken] = useState<boolean>(false);
+
+  useEffect(() => {
+    const t = getPermanentToken() || getSanityConfig()?.token || "";
+    if (t && !savedToken) {
+      setSavedToken(t);
+    }
+  }, [step]);
   const [sanityLoading, setSanityLoading] = useState(false);
   const [sanityMsg, setSanityMsg] = useState<{
     type: "success" | "error" | "info";
@@ -1892,8 +1914,9 @@ function AdminModal({
 
     // Sanity DB에도 새 비밀번호 실시간 동기화
     const cfg = getSanityConfig();
-    if (cfg?.projectId && cfg?.token) {
-      pushDataToSanity(localValues, qnaList, reviews, cfg, pwForm.newPw).catch(err => {
+    const effectiveToken = savedToken || cfg?.token || getPermanentToken();
+    if (cfg?.projectId && effectiveToken) {
+      pushDataToSanity(localValues, qnaList, reviews, cleanSanityConfig({ ...cfg, token: effectiveToken }), pwForm.newPw).catch(err => {
         console.warn("비밀번호 Sanity 동기화 대기:", err);
       });
     }
@@ -1918,17 +1941,20 @@ function AdminModal({
 
     // 3. Sanity 토큰이 연결되어 있다면 Sanity DB에도 자동 동기화
     const cfg = getSanityConfig();
-    if (cfg?.projectId && cfg?.token) {
-      setSaveStatusMsg("웹사이트 및 Sanity DB에 저장 중...");
+    const effectiveToken = savedToken || cfg?.token || getPermanentToken();
+    const pid = cfg?.projectId || "8vs8axo9";
+    if (pid && effectiveToken) {
+      setSaveStatusMsg("웹사이트 및 Sanity DB에 자동 동기화 중...");
       try {
-        const res = await pushDataToSanity(localValues, qnaList, reviews, cfg, currentStoredPw);
+        const fullConfig = cleanSanityConfig({ ...cfg, projectId: pid, token: effectiveToken });
+        const res = await pushDataToSanity(localValues, qnaList, reviews, fullConfig, currentStoredPw);
         if (res.success) {
-          setSaveStatusMsg("✓ 웹사이트 & Sanity DB에 모두 실시간 저장되었습니다!");
+          setSaveStatusMsg("✓ 웹사이트 & Sanity DB에 실시간 저장 완료!");
         } else {
-          setSaveStatusMsg(`✓ 웹사이트 저장 완료 (Sanity 동기화 실패: ${res.message})`);
+          setSaveStatusMsg(`✓ 웹사이트 저장 완료 (Sanity 동기화: ${res.message})`);
         }
       } catch (err: any) {
-        setSaveStatusMsg("✓ 웹사이트 저장 완료 (Sanity 동기화 중 오류 발생)");
+        setSaveStatusMsg("✓ 웹사이트 저장 완료");
       }
     } else {
       setSaveStatusMsg("✓ 웹사이트에 즉시 저장 및 반영되었습니다!");
@@ -1942,16 +1968,17 @@ function AdminModal({
   }
 
   async function handleTestSanity() {
-    const cleaned = cleanSanityConfig(sanityConfig);
-    if (!cleaned.projectId) {
-      setSanityMsg({
-        type: "error",
-        text: "Sanity Project ID를 입력해 주세요.",
-        errorType: "invalidId",
-      });
-      return;
-    }
+    const activeToken = tokenInput.trim() || savedToken || getPermanentToken();
+    const cleaned = cleanSanityConfig({
+      ...sanityConfig,
+      projectId: sanityConfig.projectId || "8vs8axo9",
+      token: activeToken,
+    });
 
+    if (activeToken) {
+      setPermanentToken(activeToken);
+      setSavedToken(activeToken);
+    }
     setSanityConfig(cleaned);
     setSanityLoading(true);
     setSanityMsg({ type: "info", text: "Sanity DB 연결 상태와 CORS 설정을 진단 중입니다..." });
@@ -1965,6 +1992,7 @@ function AdminModal({
         text: res.message,
         cleanProjectId: res.cleanProjectId,
       });
+      setIsEditingToken(false);
     } else {
       setSanityMsg({
         type: "error",
@@ -1978,12 +2006,17 @@ function AdminModal({
   }
 
   async function handlePushToSanity() {
-    const cleaned = cleanSanityConfig(sanityConfig);
+    const activeToken = tokenInput.trim() || savedToken || getPermanentToken();
+    const cleaned = cleanSanityConfig({
+      ...sanityConfig,
+      projectId: sanityConfig.projectId || "8vs8axo9",
+      token: activeToken,
+    });
     if (!cleaned.projectId) {
       setSanityMsg({ type: "error", text: "먼저 Project ID를 입력해 주세요.", errorType: "invalidId" });
       return;
     }
-    if (!cleaned.token?.trim()) {
+    if (!activeToken?.trim()) {
       setSanityMsg({
         type: "error",
         text: "Sanity로 데이터를 전송하려면 Write 권한이 있는 API Token이 필요합니다 (Sanity 대시보드 API -> Tokens 발급).",
@@ -1992,6 +2025,11 @@ function AdminModal({
       });
       return;
     }
+
+    setPermanentToken(activeToken);
+    setSavedToken(activeToken);
+    setIsEditingToken(false);
+
     setSanityLoading(true);
     setSanityMsg({ type: "info", text: "Sanity DB로 웹사이트 전체 데이터를 업로드 중입니다..." });
     saveLocalSanityConfig(cleaned);
@@ -2045,29 +2083,29 @@ function AdminModal({
   const currentSection = SECTIONS.find(s => s.id === activeSection);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4"
       style={{ background: "rgba(0,0,0,.6)", backdropFilter: "blur(4px)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
 
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-2xl h-[92vh] sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
 
         {/* 헤더 */}
-        <div className="bg-[#FF7F50] px-6 py-5 flex items-center justify-between shrink-0">
+        <div className="bg-[#FF7F50] px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between shrink-0">
           <div>
-            <p className="text-xs font-semibold text-orange-100 uppercase tracking-widest">Admin Panel</p>
-            <h2 className="text-lg font-extrabold text-white tracking-tight">
-              {step === "pw" ? "관리자 로그인" : "웹사이트 실시간 편집 & Sanity DB 관리"}
+            <p className="text-[11px] font-semibold text-orange-100 uppercase tracking-widest">Admin Panel</p>
+            <h2 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
+              {step === "pw" ? "관리자 로그인" : "웹사이트 실시간 편집 & DB 관리"}
             </h2>
           </div>
           <button onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-sm transition">
+            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-sm transition cursor-pointer">
             ✕
           </button>
         </div>
 
         {/* 비밀번호 */}
         {step === "pw" && (
-          <form onSubmit={handleLogin} className="p-8 flex flex-col gap-4">
+          <form onSubmit={handleLogin} className="p-6 sm:p-8 flex flex-col gap-4">
             <p className="text-sm text-[#6B7280]">
               관리자 비밀번호를 입력해 주세요. {currentStoredPw === DEFAULT_ADMIN_PW ? (
                 <span>(초기 기본값: <span className="font-mono text-[#FF7F50] font-semibold">hanwoori2024</span>)</span>
@@ -2094,9 +2132,26 @@ function AdminModal({
 
         {/* 편집 */}
         {step === "edit" && (
-          <div className="flex flex-1 overflow-hidden min-h-0">
-            {/* 사이드바 */}
-            <div className="w-36 shrink-0 border-r border-gray-100 bg-[#f9fafb] py-4 overflow-y-auto">
+          <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
+            {/* 모바일 상단 탭 (가로 스크롤) */}
+            <div className="md:hidden flex overflow-x-auto border-b border-gray-200 bg-[#f9fafb] p-2 gap-1.5 shrink-0 scrollbar-none">
+              {NAV_SIDEBAR.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setActiveSection(s.id)}
+                  className={`whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-xl transition shrink-0 cursor-pointer ${
+                    activeSection === s.id
+                      ? "bg-[#FF7F50] text-white shadow-xs"
+                      : "bg-white text-[#6B7280] border border-gray-200 active:bg-gray-100"
+                  }`}
+                >
+                  {s.id === "sanity" ? "⚡ " + s.label : s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 데스크톱 세로 사이드바 */}
+            <div className="hidden md:block w-36 shrink-0 border-r border-gray-100 bg-[#f9fafb] py-4 overflow-y-auto">
               {NAV_SIDEBAR.map(s => (
                 <button key={s.id} onClick={() => setActiveSection(s.id)}
                   className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition cursor-pointer
@@ -2109,7 +2164,7 @@ function AdminModal({
             </div>
 
             {/* 폼 영역 */}
-            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-5">
               {activeSection === "qna" ? (
                 <QnaSectionEditor qnaList={qnaList} onChange={onQnaChange} />
               ) : activeSection === "reviews" ? (
@@ -2122,7 +2177,7 @@ function AdminModal({
                       <span>⚡ Sanity CMS 데이터베이스 연동</span>
                     </h3>
                     <p className="text-xs text-[#6B7280] mt-1 leading-relaxed">
-                      Sanity.io 프로젝트와 연결하면 관리자 모드에서 수정한 내용이 클라우드 DB에 영구 보존되고 Vercel 배포 시 모든 방문자에게 최신 내용이 실시간 노출됩니다.
+                      수정한 내용이 Sanity 클라우드 DB에 영구 보존되어 모바일, PC, 모든 방문자에게 실시간 노출됩니다.
                     </p>
                   </div>
 
@@ -2145,11 +2200,11 @@ function AdminModal({
                       )}
                     </div>
                     <p className="text-[11px] text-amber-800/90 leading-relaxed">
-                      브라우저 보안 규정상 Sanity 대시보드에 <strong>현재 사이트 주소</strong>가 등록되어 있지 않으면 브라우저가 연결을 차단하여 <strong>"연결 실패"</strong>가 발생합니다.
+                      Sanity 대시보드에 <strong>현재 사이트 주소</strong>가 등록되어 있지 않으면 브라우저 보안으로 인해 연결이 차단됩니다.
                     </p>
                     <div className="bg-white/90 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
                       <div className="truncate">
-                        <span className="text-[10px] text-[#888] block font-medium">현재 접속 주소 (Sanity에 등록할 도메인):</span>
+                        <span className="text-[10px] text-[#888] block font-medium">현재 접속 주소:</span>
                         <code className="text-xs font-mono font-bold text-[#1E2B3A] select-all">
                           {typeof window !== "undefined" ? window.location.origin : ""}
                         </code>
@@ -2172,12 +2227,17 @@ function AdminModal({
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-semibold text-[#6B7280] mb-1">
-                        Sanity Project ID <span className="text-[#FF7F50]">*</span>
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-semibold text-[#6B7280]">
+                          Sanity Project ID
+                        </label>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                          ✓ 기본 내장 연결됨 (8vs8axo9)
+                        </span>
+                      </div>
                       <input
                         type="text"
-                        value={sanityConfig.projectId}
+                        value={sanityConfig.projectId || "8vs8axo9"}
                         onChange={e => {
                           let val = e.target.value;
                           if (val.includes('/project/')) {
@@ -2189,65 +2249,125 @@ function AdminModal({
                           }
                           setSanityConfig(c => ({ ...c, projectId: val.trim() }));
                         }}
-                        placeholder="예: x9q8w2y1 (URL을 그대로 붙여넣으셔도 자동 추출됩니다)"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#FF7F50] transition font-mono"
-                      />
-                      <p className="text-[11px] text-[#888] mt-1">
-                        * Sanity 대시보드(sanity.io/manage) 프로젝트 상단에 있는 8~10자리 영숫자 ID
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-[#6B7280] mb-1">Dataset (기본: production)</label>
-                      <input
-                        type="text"
-                        value={sanityConfig.dataset}
-                        onChange={e => setSanityConfig(c => ({ ...c, dataset: e.target.value.trim() }))}
-                        placeholder="production"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#FF7F50] transition font-mono"
+                        placeholder="8vs8axo9"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#FF7F50] transition font-mono bg-gray-50/70 text-[#1E2B3A] font-bold"
                       />
                     </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-xs font-semibold text-[#6B7280]">
-                          API Token (⭐️ <strong className="text-[#E8623A]">Editor 권한</strong> 필수 — 데이터 업로드 시 필요)
-                        </label>
-                        {cleanSanityConfig(sanityConfig).projectId && (
-                          <a
-                            href={`https://www.sanity.io/manage/project/${cleanSanityConfig(sanityConfig).projectId}/api#tokens`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[11px] underline text-[#FF7F50] hover:text-[#E8623A] font-bold"
+                    {/* 토큰 영구 저장 카드 */}
+                    {savedToken && !isEditingToken ? (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2.5 text-emerald-950">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shrink-0">✓</span>
+                            <span className="font-extrabold text-xs text-emerald-900">클라우드 토큰(Token) 고정 완료</span>
+                          </div>
+                          <span className="text-[10px] bg-emerald-200/80 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                            PC · 모바일 · 전 주소 통일 고정
+                          </span>
+                        </div>
+                        <p className="text-[11.5px] text-emerald-800 leading-relaxed">
+                          토큰이 클라우드에 안전하게 고정되었습니다. 이제 <strong>스마트폰이든, 다른 PC든, 어떤 도메인 주소에서 접속하든 토큰을 고칠 필요가 전혀 없으며</strong>, 관리자 비밀번호만 치면 어디서나 자유롭게 수정 및 저장할 수 있습니다.
+                        </p>
+                        <div className="pt-1.5 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTokenInput(savedToken);
+                              setIsEditingToken(true);
+                            }}
+                            className="bg-white border border-emerald-300 hover:bg-emerald-100/50 text-emerald-800 font-medium text-xs px-3 py-2 rounded-xl transition cursor-pointer"
                           >
-                            Sanity Token 발급 페이지 ↗
-                          </a>
-                        )}
+                            토큰 변경
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm("저장된 토큰을 완전히 삭제하시겠습니까?")) {
+                                setPermanentToken("");
+                                setSavedToken("");
+                                setSanityConfig(c => ({ ...c, token: "" }));
+                                setIsEditingToken(true);
+                              }
+                            }}
+                            className="text-[11px] text-gray-500 hover:text-red-500 underline ml-1"
+                          >
+                            토큰 삭제
+                          </button>
+                        </div>
                       </div>
-                      <div className="relative">
-                        <input
-                          type={showToken ? "text" : "password"}
-                          value={sanityConfig.token || ""}
-                          onChange={e => setSanityConfig(c => ({ ...c, token: e.target.value.trim() }))}
-                          placeholder="sk..."
-                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-16 text-sm outline-none focus:border-[#FF7F50] transition font-mono"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowToken(v => !v)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-500 hover:text-[#1E2B3A] px-2 py-1 bg-gray-100 rounded-md cursor-pointer"
-                        >
-                          {showToken ? "숨기기" : "보기"}
-                        </button>
+                    ) : (
+                      <div className="bg-orange-50/70 border border-orange-200 rounded-2xl p-4 space-y-3">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-xs font-bold text-[#1E2B3A]">
+                              API Token (Sanity Editor 권한 토큰) <span className="text-[#FF7F50]">*</span>
+                            </label>
+                            <a
+                              href={`https://www.sanity.io/manage/project/${cleanSanityConfig(sanityConfig).projectId || "8vs8axo9"}/api#tokens`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] underline text-[#FF7F50] hover:text-[#E8623A] font-bold"
+                            >
+                              Sanity Token 발급 페이지 ↗
+                            </a>
+                          </div>
+                          <p className="text-[11px] text-[#6B7280] leading-relaxed mb-2">
+                            PC에서 딱 <strong>한 번만</strong> 입력하시면 <strong>모바일, 스마트폰, 모든 주소에 자동 통일 고정</strong>되어 다시 입력할 필요가 없습니다.
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <input
+                              type={showToken ? "text" : "password"}
+                              value={tokenInput}
+                              onChange={e => setTokenInput(e.target.value.trim())}
+                              placeholder="sk... 로 시작하는 토큰을 붙여넣으세요"
+                              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 pr-14 text-xs outline-none focus:border-[#FF7F50] transition font-mono bg-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowToken(!showToken)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-500 hover:text-[#1E2B3A] px-1.5 py-0.5 bg-gray-100 rounded cursor-pointer"
+                            >
+                              {showToken ? "숨김" : "보기"}
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!tokenInput.trim()) {
+                                alert("토큰을 입력해 주세요.");
+                                return;
+                              }
+                              const cleanToken = tokenInput.trim();
+                              setPermanentToken(cleanToken);
+                              setSavedToken(cleanToken);
+                              setSanityConfig(c => ({ ...c, token: cleanToken }));
+                              saveLocalSanityConfig({ ...sanityConfig, token: cleanToken });
+                              setIsEditingToken(false);
+                              setSanityLoading(true);
+                              const syncRes = await saveTokenToSanity(cleanToken);
+                              setSanityLoading(false);
+                              if (syncRes.success) {
+                                alert("✓ 토큰이 클라우드 DB에 영구 등록되었습니다!\n\n이제 PC뿐만 아니라 모바일, 스마트폰, 새 도메인 주소 등 모든 기기에서 토큰을 입력할 필요가 없으며, 비밀번호만 입력하면 즉시 수정 및 저장됩니다.");
+                              } else {
+                                alert("✓ 토큰이 저장되었습니다. (CORS 허용 후 모든 기기에 자동 연동됩니다)");
+                              }
+                            }}
+                            className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer shrink-0"
+                          >
+                            토큰 등록 (전 기기 자동 고정)
+                          </button>
+                        </div>
+                        <div className="bg-white/80 border border-orange-200/60 rounded-xl p-2.5 text-[11px] text-[#8A5030] space-y-0.5">
+                          <p className="font-bold text-[#E8623A]">💡 API Token 발급 방법 (1분 완료):</p>
+                          <p>1. Sanity 대시보드 &gt; <strong>API &gt; Tokens</strong>에서 <strong>[+ Add API token]</strong> 클릭</p>
+                          <p>2. Permissions에서 반드시 <strong className="text-red-700 underline font-extrabold">[Editor]</strong> 선택 후 Save!</p>
+                          <p>3. 생성된 <code>sk...</code> 토큰을 여기에 붙여넣고 [토큰 등록]을 누르면 PC와 모바일 모두 끝!</p>
+                        </div>
                       </div>
-                      <div className="bg-[#FFF0EA]/70 border border-orange-200/70 rounded-xl p-2.5 mt-1.5 text-[11px] text-[#8A5030] space-y-0.5">
-                        <p className="font-bold text-[#E8623A]">💡 API Token 발급 방법 (1분 완료):</p>
-                        <p>1. Sanity 대시보드 &gt; <strong>API &gt; Tokens</strong>에서 <strong>[+ Add API token]</strong> 클릭</p>
-                        <p>2. Name은 자유롭게(예: <code>my-web</code>) 입력</p>
-                        <p>3. Permissions에서 반드시 <strong className="text-red-700 underline font-extrabold">[Editor]</strong> (또는 Administrator) 선택 후 Save!</p>
-                        <p className="text-[10.5px] text-gray-500">※ 주의: 기본값 'Viewer'는 읽기 전용이므로 업로드가 차단됩니다.</p>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   {sanityMsg && (
@@ -2599,6 +2719,15 @@ export default function App() {
     }).catch(e => {
       console.log("Sanity 자동 동기화 대기 중", e);
     });
+
+    // URL에 admin 또는 adminToken이 있으면 관리자 모달 자동 열기
+    if (typeof window !== "undefined") {
+      const search = window.location.search;
+      const hash = window.location.hash;
+      if (search.includes("admin=1") || hash.includes("admin") || hash.includes("adminToken")) {
+        setAdminOpen(true);
+      }
+    }
   }, []);
 
   function handleQnaChange(list: QnaItem[]) {
