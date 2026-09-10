@@ -62,21 +62,64 @@ function scrollTo(id: string) {
 
 function MapLoader() {
   useEffect(() => {
-    if ((window as any)._daumMapLoaded) return;
-    (window as any)._daumMapLoaded = true;
-    const s = document.createElement("script");
-    s.charset = "UTF-8";
-    s.src = "https://ssl.daumcdn.net/dmaps/map_js_init/roughmapLoader.js";
-    s.onload = () => {
-      new (window as any).daum.roughmap.Lander({
-        timestamp: "1788803690193",
-        key: "2ihvyw7i9ytd",
-        mapWidth: "100%",
-        mapHeight: "350",
-      }).render();
+    const containerId = "daumRoughmapContainer1788803690193";
+    let isMounted = true;
+
+    function renderMap() {
+      if (!isMounted) return;
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      // 이미 지도가 렌더링되어 있다면 중복 렌더링 방지
+      if (el.querySelector(".roughmap_maker_label") || el.children.length > 0) return;
+
+      if ((window as any).daum?.roughmap?.Lander) {
+        try {
+          new (window as any).daum.roughmap.Lander({
+            timestamp: "1788803690193",
+            key: "2ihvyw7i9ytd",
+            mapWidth: "100%",
+            mapHeight: "350",
+          }).render();
+        } catch (err) {
+          console.warn("Kakao map render error:", err);
+        }
+      }
+    }
+
+    if ((window as any).daum?.roughmap?.Lander) {
+      renderMap();
+      return;
+    }
+
+    const scriptId = "daum-roughmap-loader-script";
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement("script");
+      script.id = scriptId;
+      script.charset = "UTF-8";
+      script.src = "https://ssl.daumcdn.net/dmaps/map_js_init/roughmapLoader.js";
+      script.onload = () => {
+        if (isMounted) renderMap();
+      };
+      document.head.appendChild(script);
+    } else {
+      const timer = setInterval(() => {
+        if ((window as any).daum?.roughmap?.Lander) {
+          clearInterval(timer);
+          if (isMounted) renderMap();
+        }
+      }, 150);
+      return () => {
+        isMounted = false;
+        clearInterval(timer);
+      };
+    }
+
+    return () => {
+      isMounted = false;
     };
-    document.head.appendChild(s);
   }, []);
+
   return null;
 }
 
@@ -274,6 +317,24 @@ function MobileLayout({
         <div className="mt-4 rounded-2xl overflow-hidden shadow-sm border border-gray-100">
           <div id="daumRoughmapContainer1788803690193" className="root_daum_roughmap root_daum_roughmap_landing w-full" />
           <MapLoader />
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <a
+            href={`https://map.kakao.com/link/search/${encodeURIComponent(values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="py-2.5 px-3 bg-amber-50 active:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition"
+          >
+            <span>🗺️ 카카오맵 크게보기</span>
+          </a>
+          <a
+            href={`https://map.kakao.com/link/to/한우리독서토론논술 산내푸르지오,37.72895,126.73285`}
+            target="_blank"
+            rel="noreferrer"
+            className="py-2.5 px-3 bg-[#1E2B3A] active:bg-[#2C3E50] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition"
+          >
+            <span>🚗 길찾기 바로가기</span>
+          </a>
         </div>
       </section>
 
@@ -542,6 +603,24 @@ function PCLayout({
         <div className="mt-6 rounded-2xl overflow-hidden shadow-sm border border-gray-100">
           <div id="daumRoughmapContainer1788803690193" className="root_daum_roughmap root_daum_roughmap_landing w-full" />
           <MapLoader />
+        </div>
+        <div className="mt-4 flex items-center justify-end gap-3">
+          <a
+            href={`https://map.kakao.com/link/search/${encodeURIComponent(values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition"
+          >
+            <span>🗺️ 카카오맵 크게보기</span>
+          </a>
+          <a
+            href={`https://map.kakao.com/link/to/한우리독서토론논술 산내푸르지오,37.72895,126.73285`}
+            target="_blank"
+            rel="noreferrer"
+            className="py-2.5 px-4 bg-[#1E2B3A] hover:bg-[#2C3E50] text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition"
+          >
+            <span>🚗 길찾기 바로가기</span>
+          </a>
         </div>
       </section>
 
@@ -868,7 +947,24 @@ function QnaPage({ onBack, items }: { onBack: () => void; items?: QnaItem[] }) {
 /* ═══════════════════════════════════════
    관리자 모달
 ═══════════════════════════════════════ */
-const ADMIN_PW = "hanwoori2024";
+const DEFAULT_ADMIN_PW = "hanwoori2024";
+const LOCAL_STORAGE_ADMIN_PW_KEY = "hanwoori_admin_pw";
+
+function getStoredAdminPassword(): string {
+  try {
+    return localStorage.getItem(LOCAL_STORAGE_ADMIN_PW_KEY) || DEFAULT_ADMIN_PW;
+  } catch {
+    return DEFAULT_ADMIN_PW;
+  }
+}
+
+function saveStoredAdminPassword(newPw: string): void {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_ADMIN_PW_KEY, newPw);
+  } catch (e) {
+    console.error("Failed to save admin password", e);
+  }
+}
 
 const SECTIONS = [
   {
@@ -1528,6 +1624,7 @@ const NAV_SIDEBAR = [
   { id: "qna", label: "자주 묻는 질문" },
   { id: "reviews", label: "수업 소식" },
   { id: "sanity", label: "Sanity DB 연동" },
+  { id: "password", label: "관리자 비밀번호" },
 ];
 
 /* ─── 수업 소식 편집기 ─── */
@@ -1639,6 +1736,11 @@ function AdminModal({
   const [saved, setSaved] = useState(false);
   const [saveStatusMsg, setSaveStatusMsg] = useState("");
 
+  // 관리자 비밀번호 변경 상태
+  const [currentStoredPw, setCurrentStoredPw] = useState(getStoredAdminPassword());
+  const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirmPw: "" });
+  const [pwMsg, setPwMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   // Sanity 연동 관련 상태
   const [sanityConfig, setSanityConfig] = useState<SanityConfig>(() => {
     const cfg = getSanityConfig();
@@ -1656,11 +1758,43 @@ function AdminModal({
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (pw === ADMIN_PW) {
+    if (pw === currentStoredPw) {
       setStep("edit");
       setPwError(false);
     } else {
       setPwError(true);
+    }
+  }
+
+  function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPwMsg(null);
+
+    if (pwForm.current !== currentStoredPw) {
+      setPwMsg({ type: "error", text: "현재 비밀번호가 일치하지 않습니다." });
+      return;
+    }
+    if (!pwForm.newPw || pwForm.newPw.length < 4) {
+      setPwMsg({ type: "error", text: "새 비밀번호는 4자리 이상이어야 합니다." });
+      return;
+    }
+    if (pwForm.newPw !== pwForm.confirmPw) {
+      setPwMsg({ type: "error", text: "새 비밀번호와 확인 비밀번호가 일치하지 않습니다." });
+      return;
+    }
+
+    saveStoredAdminPassword(pwForm.newPw);
+    setCurrentStoredPw(pwForm.newPw);
+    setPwForm({ current: "", newPw: "", confirmPw: "" });
+    setPwMsg({ type: "success", text: "✓ 관리자 비밀번호가 성공적으로 변경되었습니다! 다음 로그인부터 적용됩니다." });
+  }
+
+  function handleResetPassword() {
+    if (window.confirm("비밀번호를 기본값(hanwoori2024)으로 초기화하시겠습니까?")) {
+      saveStoredAdminPassword(DEFAULT_ADMIN_PW);
+      setCurrentStoredPw(DEFAULT_ADMIN_PW);
+      setPwForm({ current: "", newPw: "", confirmPw: "" });
+      setPwMsg({ type: "success", text: "✓ 비밀번호가 기본값(hanwoori2024)으로 초기화되었습니다." });
     }
   }
 
@@ -1792,7 +1926,11 @@ function AdminModal({
         {step === "pw" && (
           <form onSubmit={handleLogin} className="p-8 flex flex-col gap-4">
             <p className="text-sm text-[#6B7280]">
-              관리자 비밀번호를 입력해 주세요. (기본: <span className="font-mono text-[#FF7F50]">hanwoori2024</span>)
+              관리자 비밀번호를 입력해 주세요. {currentStoredPw === DEFAULT_ADMIN_PW ? (
+                <span>(초기 기본값: <span className="font-mono text-[#FF7F50] font-semibold">hanwoori2024</span>)</span>
+              ) : (
+                <span className="text-xs text-orange-600 block mt-1">* 사용자가 설정한 비밀번호가 적용 중입니다.</span>
+              )}
             </p>
             <input
               type="password"
@@ -1931,6 +2069,88 @@ function AdminModal({
                     </div>
                   </div>
                 </div>
+              ) : activeSection === "password" ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#1E2B3A] tracking-tight">관리자 비밀번호 설정</h3>
+                    <p className="text-xs text-[#6B7280] mt-1">
+                      관리자 모드 접속 시 사용할 새로운 비밀번호를 설정할 수 있습니다.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleChangePassword} className="space-y-3 bg-gray-50 border border-gray-200 rounded-2xl p-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4A5A6A] mb-1">
+                        현재 비밀번호
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="현재 사용 중인 비밀번호를 입력하세요"
+                        value={pwForm.current}
+                        onChange={e => setPwForm(prev => ({ ...prev, current: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-white outline-none focus:border-[#FF7F50] transition"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4A5A6A] mb-1">
+                        새 비밀번호 (4자리 이상)
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="새 비밀번호 입력"
+                        value={pwForm.newPw}
+                        onChange={e => setPwForm(prev => ({ ...prev, newPw: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-white outline-none focus:border-[#FF7F50] transition"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4A5A6A] mb-1">
+                        새 비밀번호 확인
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="새 비밀번호 다시 입력"
+                        value={pwForm.confirmPw}
+                        onChange={e => setPwForm(prev => ({ ...prev, confirmPw: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-white outline-none focus:border-[#FF7F50] transition"
+                        required
+                      />
+                    </div>
+
+                    {pwMsg && (
+                      <div className={`p-3 rounded-xl text-xs font-semibold ${
+                        pwMsg.type === "success"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-red-50 text-red-700 border border-red-200"
+                      }`}>
+                        {pwMsg.text}
+                      </div>
+                    )}
+
+                    <div className="pt-2 flex items-center justify-between gap-3 border-t border-gray-200">
+                      <button
+                        type="submit"
+                        className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-xs py-2.5 px-5 rounded-xl transition cursor-pointer shadow-sm"
+                      >
+                        비밀번호 변경하기
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResetPassword}
+                        className="text-[11px] text-gray-500 hover:text-red-500 underline transition cursor-pointer"
+                      >
+                        기본값(hanwoori2024)으로 초기화
+                      </button>
+                    </div>
+                  </form>
+                  <p className="text-[11px] text-[#8A9AB0] leading-relaxed">
+                    * 변경된 비밀번호는 브라우저 보안 저장소에 안전하게 보관됩니다.
+                  </p>
+                </div>
               ) : currentSection ? (
                 <>
                   <div className="flex items-center justify-between">
@@ -1960,8 +2180,8 @@ function AdminModal({
                 </>
               ) : null}
 
-              {/* 저장 버튼 (QnA, 수업소식, Sanity 설정 제외 탭) */}
-              {activeSection !== "qna" && activeSection !== "reviews" && activeSection !== "sanity" && (
+              {/* 저장 버튼 (QnA, 수업소식, Sanity 설정, 비밀번호 제외 탭) */}
+              {activeSection !== "qna" && activeSection !== "reviews" && activeSection !== "sanity" && activeSection !== "password" && (
                 <div className="mt-2 flex flex-col gap-2">
                   <div className="flex items-center gap-3">
                     <button onClick={handleSave}
