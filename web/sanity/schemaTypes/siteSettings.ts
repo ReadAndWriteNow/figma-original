@@ -16,6 +16,12 @@ export default {
       description: '웹사이트 전체 텍스트 및 설정값이 JSON 형식으로 자동 보존됩니다.',
     },
     {
+      name: 'adminPassword',
+      title: '관리자 비밀번호',
+      type: 'string',
+      description: '웹사이트 관리자 모드 접속 비밀번호 (모든 기기 동기화용)',
+    },
+    {
       name: 'values',
       title: '페이지 문구 및 설정값',
       type: 'object',

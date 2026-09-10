@@ -13,6 +13,9 @@ const LOCAL_STORAGE_SITE_DATA_KEY = 'hanwoori_site_content_v1';
 const LOCAL_STORAGE_QNA_KEY = 'hanwoori_qna_list_v1';
 const LOCAL_STORAGE_REVIEWS_KEY = 'hanwoori_reviews_list_v1';
 
+// Sanity Project ID 기본값 (Vercel 환경 변수가 없을 때 모든 방문자에게 자동 적용할 기본값)
+export const FALLBACK_PROJECT_ID = '';
+
 // Sanity 설정 정제 (공백 제거, URL에서 Project ID 추출, Token 정제 등)
 export function cleanSanityConfig(raw: SanityConfig): SanityConfig {
   let pid = (raw.projectId || '').trim();
@@ -47,13 +50,36 @@ export function cleanSanityConfig(raw: SanityConfig): SanityConfig {
   };
 }
 
-// 환경 변수 또는 localStorage에서 Sanity 설정 로드
+// 환경 변수, URL 파라미터, 또는 localStorage에서 Sanity 설정 로드
 export function getSanityConfig(): SanityConfig | null {
-  const envProjectId = import.meta.env.VITE_SANITY_PROJECT_ID;
+  const envProjectId = (import.meta.env.VITE_SANITY_PROJECT_ID || FALLBACK_PROJECT_ID || '').trim();
   const envDataset = import.meta.env.VITE_SANITY_DATASET || 'production';
   const envApiVersion = import.meta.env.VITE_SANITY_API_VERSION || '2024-03-01';
   const envToken = import.meta.env.VITE_SANITY_TOKEN || '';
 
+  // 1. URL 쿼리 파라미터 확인 (?sanity=프로젝트ID 또는 ?sanityProject=프로젝트ID)
+  // 카카오톡이나 모바일 기기로 공유할 때 자동으로 해당 기기에 Sanity 설정을 심어줌
+  if (typeof window !== 'undefined') {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlPid = urlParams.get('sanity') || urlParams.get('sanityProject') || urlParams.get('sanity_project');
+      if (urlPid) {
+        const cleaned = cleanSanityConfig({
+          projectId: urlPid,
+          dataset: urlParams.get('dataset') || envDataset,
+          apiVersion: envApiVersion,
+          token: envToken,
+          useCdn: false,
+        });
+        localStorage.setItem(LOCAL_STORAGE_SANITY_CONFIG_KEY, JSON.stringify(cleaned));
+        return cleaned;
+      }
+    } catch (e) {
+      console.warn('URL 파라미터 확인 실패:', e);
+    }
+  }
+
+  // 2. localStorage 확인
   try {
     const local = localStorage.getItem(LOCAL_STORAGE_SANITY_CONFIG_KEY);
     if (local) {
@@ -72,6 +98,7 @@ export function getSanityConfig(): SanityConfig | null {
     console.warn('Failed to parse local Sanity config', e);
   }
 
+  // 3. 환경 변수 또는 코드 내 기본값 확인
   if (envProjectId) {
     return cleanSanityConfig({
       projectId: envProjectId,
@@ -245,6 +272,7 @@ export async function fetchSanityData(): Promise<{
   values?: Record<string, string>;
   qnaList?: any[];
   reviews?: any[];
+  adminPassword?: string;
 } | null> {
   const client = getSanityClient();
   if (!client) return null;
@@ -256,7 +284,7 @@ export async function fetchSanityData(): Promise<{
       client.fetch('*[_type == "reviewItem"] | order(date desc, _createdAt desc)'),
     ]);
 
-    const result: { values?: Record<string, string>; qnaList?: any[]; reviews?: any[] } = {};
+    const result: { values?: Record<string, string>; qnaList?: any[]; reviews?: any[]; adminPassword?: string } = {};
 
     // 1. values 복원 (valuesJson 우선, 없으면 values 객체 복원)
     if (siteSettings?.valuesJson) {
@@ -274,6 +302,11 @@ export async function fetchSanityData(): Promise<{
         restored[origKey] = String(v ?? '');
       }
       result.values = restored;
+    }
+
+    // 관리자 비밀번호 동기화
+    if (siteSettings?.adminPassword && typeof siteSettings.adminPassword === 'string') {
+      result.adminPassword = siteSettings.adminPassword;
     }
 
     if (Array.isArray(qnaItems) && qnaItems.length > 0) {
@@ -304,7 +337,8 @@ export async function pushDataToSanity(
   values: Record<string, string>,
   qnaList: any[],
   reviews: any[],
-  customConfig?: SanityConfig | null
+  customConfig?: SanityConfig | null,
+  adminPassword?: string
 ): Promise<{ success: boolean; message: string; errorType?: string }> {
   const rawConfig = customConfig || getSanityConfig();
   if (!rawConfig) {
@@ -333,14 +367,19 @@ export async function pushDataToSanity(
       safeValues[safeKey] = String(v ?? '');
     }
 
-    await client.createOrReplace({
+    const doc: any = {
       _id: 'siteSettings',
       _type: 'siteSettings',
       title: '웹사이트 설정',
       valuesJson: JSON.stringify(values || {}),
       values: safeValues,
       updatedAt: new Date().toISOString(),
-    });
+    };
+    if (adminPassword) {
+      doc.adminPassword = adminPassword;
+    }
+
+    await client.createOrReplace(doc);
 
     // 2. qna 저장
     const existingQna = await client.fetch('*[_type == "qnaItem"]._id');

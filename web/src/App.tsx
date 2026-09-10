@@ -1889,6 +1889,14 @@ function AdminModal({
     setCurrentStoredPw(pwForm.newPw);
     setPwForm({ current: "", newPw: "", confirmPw: "" });
     setPwMsg({ type: "success", text: "✓ 관리자 비밀번호가 성공적으로 변경되었습니다! 다음 로그인부터 적용됩니다." });
+
+    // Sanity DB에도 새 비밀번호 실시간 동기화
+    const cfg = getSanityConfig();
+    if (cfg?.projectId && cfg?.token) {
+      pushDataToSanity(localValues, qnaList, reviews, cfg, pwForm.newPw).catch(err => {
+        console.warn("비밀번호 Sanity 동기화 대기:", err);
+      });
+    }
   }
 
   function handleResetPassword() {
@@ -1913,7 +1921,7 @@ function AdminModal({
     if (cfg?.projectId && cfg?.token) {
       setSaveStatusMsg("웹사이트 및 Sanity DB에 저장 중...");
       try {
-        const res = await pushDataToSanity(localValues, qnaList, reviews);
+        const res = await pushDataToSanity(localValues, qnaList, reviews, cfg, currentStoredPw);
         if (res.success) {
           setSaveStatusMsg("✓ 웹사이트 & Sanity DB에 모두 실시간 저장되었습니다!");
         } else {
@@ -1988,7 +1996,7 @@ function AdminModal({
     setSanityMsg({ type: "info", text: "Sanity DB로 웹사이트 전체 데이터를 업로드 중입니다..." });
     saveLocalSanityConfig(cleaned);
 
-    const res = await pushDataToSanity(localValues, qnaList, reviews, cleaned);
+    const res = await pushDataToSanity(localValues, qnaList, reviews, cleaned, currentStoredPw);
     setSanityLoading(false);
     if (res.success) {
       setSanityMsg({ type: "success", text: res.message });
@@ -2011,6 +2019,10 @@ function AdminModal({
     const data = await fetchSanityData();
     setSanityLoading(false);
     if (data) {
+      if (data.adminPassword) {
+        saveStoredAdminPassword(data.adminPassword);
+        setCurrentStoredPw(data.adminPassword);
+      }
       if (data.values) {
         setLocalValues(prev => ({ ...prev, ...data.values }));
         onValuesChange({ ...localValues, ...data.values });
@@ -2356,6 +2368,42 @@ function AdminModal({
                         📥 Sanity에서 최신 데이터 가져오기
                       </button>
                     </div>
+
+                    {/* 카카오톡 및 모바일 기기 즉시 동기화 링크 복사 */}
+                    {cleanSanityConfig(sanityConfig).projectId && (
+                      <div className="bg-[#F0FDF4] border border-[#86EFAC] rounded-2xl p-3.5 space-y-2 text-[#166534] mt-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-xs flex items-center gap-1.5">
+                            <span>📱</span> 카카오톡 / 스마트폰에서 수정 데이터 바로 뜨게 하기
+                          </span>
+                          <span className="text-[10px] bg-[#DCFCE7] text-[#15803D] font-bold px-2 py-0.5 rounded-full">
+                            즉시 해결
+                          </span>
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-[#14532D]">
+                          스마트폰은 새 기기이므로 Sanity 연결 정보가 아직 없습니다. 아래 <strong>[동기화 링크 복사]</strong>를 눌러 카톡으로 보내서 열면, 스마트폰에서도 Sanity가 자동 연결되어 방금 수정한 글과 비밀번호가 바로 반영됩니다!
+                        </p>
+                        <div className="pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const pid = cleanSanityConfig(sanityConfig).projectId;
+                              const shareUrl = `${window.location.origin}${window.location.pathname}?sanity=${pid}`;
+                              if (navigator.clipboard) {
+                                navigator.clipboard.writeText(shareUrl);
+                                alert("✓ 카카오톡 공유용 동기화 링크가 복사되었습니다!\n스마트폰 카톡으로 보내서 열면 최신 데이터가 바로 반영됩니다:\n\n" + shareUrl);
+                              }
+                            }}
+                            className="bg-[#15803D] hover:bg-[#166534] text-white font-bold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+                          >
+                            <span>📋</span> 스마트폰/카카오톡 공유 링크 복사 (?sanity={cleanSanityConfig(sanityConfig).projectId})
+                          </button>
+                        </div>
+                        <p className="text-[10.5px] text-[#15803D]/80">
+                          * 모든 방문자에게 영구 적용하려면 Vercel 대시보드 &gt; Environment Variables에 <code>VITE_SANITY_PROJECT_ID = {cleanSanityConfig(sanityConfig).projectId}</code>를 등록하세요.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : activeSection === "password" ? (
@@ -2529,6 +2577,9 @@ export default function App() {
   useEffect(() => {
     fetchSanityData().then(remote => {
       if (remote) {
+        if (remote.adminPassword) {
+          saveStoredAdminPassword(remote.adminPassword);
+        }
         if (remote.values && Object.keys(remote.values).length > 0) {
           setSiteValues(prev => {
             const merged = { ...prev, ...remote.values };
