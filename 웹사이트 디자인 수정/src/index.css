@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --color-orange-primary: #FF7F50;
+  --color-orange-deep: #E8623A;
+  --color-orange-light: #FFF0EA;
+  --color-cream: #FDFBF7;
+  --color-ink: #1E2B3A;
+  --color-muted: #6B7280;
+  --font-sans: 'Noto Sans KR', sans-serif;
+  --font-serif: 'Noto Serif KR', serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
