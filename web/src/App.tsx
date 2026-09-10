@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   getSanityConfig,
   saveLocalSanityConfig,
+  cleanSanityConfig,
   testSanityConnection,
   fetchSanityData,
   pushDataToSanity,
@@ -11,6 +12,7 @@ import {
   LOCAL_STORAGE_QNA_KEY,
   LOCAL_STORAGE_REVIEWS_KEY,
   type SanityConfig,
+  type SanityTestResult,
 } from "./lib/sanity";
 
 const DEFAULT_VALUES: Record<string, string> = {
@@ -1836,7 +1838,24 @@ function AdminModal({
     );
   });
   const [sanityLoading, setSanityLoading] = useState(false);
-  const [sanityMsg, setSanityMsg] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const [sanityMsg, setSanityMsg] = useState<{
+    type: "success" | "error" | "info";
+    text: string;
+    errorType?: "cors" | "notFound" | "unauthorized" | "invalidId" | "unknown";
+    origin?: string;
+    manageUrl?: string;
+    cleanProjectId?: string;
+  } | null>(null);
+  const [copiedOrigin, setCopiedOrigin] = useState(false);
+
+  function copyCurrentOrigin() {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    if (origin && navigator.clipboard) {
+      navigator.clipboard.writeText(origin);
+      setCopiedOrigin(true);
+      setTimeout(() => setCopiedOrigin(false), 2000);
+    }
+  }
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -1914,45 +1933,73 @@ function AdminModal({
   }
 
   async function handleTestSanity() {
-    if (!sanityConfig.projectId.trim()) {
-      setSanityMsg({ type: "error", text: "Sanity Project ID를 입력해 주세요." });
+    const cleaned = cleanSanityConfig(sanityConfig);
+    if (!cleaned.projectId) {
+      setSanityMsg({
+        type: "error",
+        text: "Sanity Project ID를 입력해 주세요.",
+        errorType: "invalidId",
+      });
       return;
     }
-    setSanityLoading(true);
-    setSanityMsg({ type: "info", text: "Sanity DB 연결을 확인하는 중입니다..." });
-    saveLocalSanityConfig(sanityConfig);
 
-    const res = await testSanityConnection(sanityConfig);
+    setSanityConfig(cleaned);
+    setSanityLoading(true);
+    setSanityMsg({ type: "info", text: "Sanity DB 연결 상태와 CORS 설정을 진단 중입니다..." });
+    saveLocalSanityConfig(cleaned);
+
+    const res = await testSanityConnection(cleaned);
     setSanityLoading(false);
     if (res.success) {
-      setSanityMsg({ type: "success", text: "✓ Sanity 연결 성공! 프로젝트와 정상 통신 중입니다." });
+      setSanityMsg({
+        type: "success",
+        text: res.message,
+        cleanProjectId: res.cleanProjectId,
+      });
     } else {
-      setSanityMsg({ type: "error", text: `✕ 연결 실패: ${res.message}` });
+      setSanityMsg({
+        type: "error",
+        text: res.message,
+        errorType: res.errorType,
+        origin: res.currentOrigin,
+        manageUrl: res.manageUrl,
+        cleanProjectId: res.cleanProjectId || cleaned.projectId,
+      });
     }
   }
 
   async function handlePushToSanity() {
-    if (!sanityConfig.projectId.trim()) {
-      setSanityMsg({ type: "error", text: "먼저 Project ID를 입력해 주세요." });
+    const cleaned = cleanSanityConfig(sanityConfig);
+    if (!cleaned.projectId) {
+      setSanityMsg({ type: "error", text: "먼저 Project ID를 입력해 주세요.", errorType: "invalidId" });
       return;
     }
-    if (!sanityConfig.token?.trim()) {
+    if (!cleaned.token?.trim()) {
       setSanityMsg({
         type: "error",
         text: "Sanity로 데이터를 전송하려면 Write 권한이 있는 API Token이 필요합니다 (Sanity 대시보드 API -> Tokens 발급).",
+        errorType: "unauthorized",
+        manageUrl: `https://www.sanity.io/manage/project/${cleaned.projectId}/api`,
       });
       return;
     }
     setSanityLoading(true);
     setSanityMsg({ type: "info", text: "Sanity DB로 데이터를 업로드 중입니다..." });
-    saveLocalSanityConfig(sanityConfig);
+    saveLocalSanityConfig(cleaned);
 
     const res = await pushDataToSanity(localValues, qnaList, reviews);
     setSanityLoading(false);
     if (res.success) {
       setSanityMsg({ type: "success", text: "✓ Sanity DB에 웹사이트 모든 데이터가 성공적으로 업로드되었습니다!" });
     } else {
-      setSanityMsg({ type: "error", text: `✕ 업로드 실패: ${res.message}` });
+      const isCors = res.message?.includes("Failed to fetch") || res.message?.includes("NetworkError");
+      setSanityMsg({
+        type: "error",
+        text: `✕ 업로드 실패: ${res.message}`,
+        errorType: isCors ? "cors" : "unknown",
+        origin: typeof window !== "undefined" ? window.location.origin : "",
+        manageUrl: `https://www.sanity.io/manage/project/${cleaned.projectId}/api`,
+      });
     }
   }
 
@@ -2061,14 +2108,52 @@ function AdminModal({
                       <span>⚡ Sanity CMS 데이터베이스 연동</span>
                     </h3>
                     <p className="text-xs text-[#6B7280] mt-1 leading-relaxed">
-                      Sanity.io 프로젝트와 연결하면 관리자 모드에서 수정한 내용이 클라우드 DB에 영구 보존되고 Vercel 배포 시 모든 방문자에게 최신 내용이 노출됩니다.
+                      Sanity.io 프로젝트와 연결하면 관리자 모드에서 수정한 내용이 클라우드 DB에 영구 보존되고 Vercel 배포 시 모든 방문자에게 최신 내용이 실시간 노출됩니다.
                     </p>
                   </div>
 
-                  <div className="bg-[#FFF0EA]/40 border border-orange-200 rounded-2xl p-4 text-xs text-[#8A5030] space-y-1">
-                    <p className="font-bold text-[#E8623A]">💡 간편 연동 팁</p>
-                    <p>1. Sanity.io 무료 가입 후 프로젝트의 <strong>Project ID</strong>를 입력하세요.</p>
-                    <p>2. Vercel 배포 시 환경 변수(<code>VITE_SANITY_PROJECT_ID</code>)로 설정해도 되고, 여기서 직접 저장해두셔도 바로 작동합니다.</p>
+                  {/* 1단계 필수 설정: CORS 도메인 등록 가이드 */}
+                  <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 space-y-2.5">
+                    <div className="flex items-center justify-between font-bold text-amber-800">
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-base">⚠️</span>
+                        <span>[필수 1단계] Sanity에 현재 도메인(CORS) 등록</span>
+                      </span>
+                      {cleanSanityConfig(sanityConfig).projectId && (
+                        <a
+                          href={`https://www.sanity.io/manage/project/${cleanSanityConfig(sanityConfig).projectId}/api`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] underline text-[#FF7F50] hover:text-[#E8623A] font-bold"
+                        >
+                          Sanity CORS 설정 열기 ↗
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                      브라우저 보안 규정상 Sanity 대시보드에 <strong>현재 사이트 주소</strong>가 등록되어 있지 않으면 브라우저가 연결을 차단하여 <strong>"연결 실패"</strong>가 발생합니다.
+                    </p>
+                    <div className="bg-white/90 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
+                      <div className="truncate">
+                        <span className="text-[10px] text-[#888] block font-medium">현재 접속 주소 (Sanity에 등록할 도메인):</span>
+                        <code className="text-xs font-mono font-bold text-[#1E2B3A] select-all">
+                          {typeof window !== "undefined" ? window.location.origin : ""}
+                        </code>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={copyCurrentOrigin}
+                        className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-xs cursor-pointer"
+                      >
+                        {copiedOrigin ? "✓ 복사됨!" : "주소 복사"}
+                      </button>
+                    </div>
+                    <div className="text-[11px] text-amber-900/90 space-y-0.5 pt-0.5">
+                      <p className="font-bold">👉 30초 설정 방법:</p>
+                      <p>1. Sanity 대시보드 &gt; <strong>API &gt; CORS Origins</strong>에서 <strong>[+ Add CORS origin]</strong> 클릭</p>
+                      <p>2. 위 복사한 주소(또는 Vercel 배포 주소 <code>https://*.vercel.app</code>) 입력</p>
+                      <p>3. <strong className="text-amber-950 underline">"Allow credentials"</strong> 체크박스에 꼭 체크한 후 <strong>Save</strong> 클릭!</p>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -2079,10 +2164,23 @@ function AdminModal({
                       <input
                         type="text"
                         value={sanityConfig.projectId}
-                        onChange={e => setSanityConfig(c => ({ ...c, projectId: e.target.value }))}
-                        placeholder="예: x9q8w2y1"
+                        onChange={e => {
+                          let val = e.target.value;
+                          if (val.includes('/project/')) {
+                            val = val.split('/project/')[1]?.split('/')[0]?.split('?')[0] || val;
+                          } else if (val.includes('/projects/')) {
+                            val = val.split('/projects/')[1]?.split('/')[0]?.split('?')[0] || val;
+                          } else if (val.includes('.api.sanity.io')) {
+                            val = val.replace(/^https?:\/\//, '').split('.api.sanity.io')[0] || val;
+                          }
+                          setSanityConfig(c => ({ ...c, projectId: val.trim() }));
+                        }}
+                        placeholder="예: x9q8w2y1 (URL을 그대로 붙여넣으셔도 자동 추출됩니다)"
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#FF7F50] transition font-mono"
                       />
+                      <p className="text-[11px] text-[#888] mt-1">
+                        * Sanity 대시보드(sanity.io/manage) 프로젝트 상단에 있는 8~10자리 영숫자 ID
+                      </p>
                     </div>
 
                     <div>
@@ -2090,7 +2188,7 @@ function AdminModal({
                       <input
                         type="text"
                         value={sanityConfig.dataset}
-                        onChange={e => setSanityConfig(c => ({ ...c, dataset: e.target.value }))}
+                        onChange={e => setSanityConfig(c => ({ ...c, dataset: e.target.value.trim() }))}
                         placeholder="production"
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#FF7F50] transition font-mono"
                       />
@@ -2103,7 +2201,7 @@ function AdminModal({
                       <input
                         type="password"
                         value={sanityConfig.token || ""}
-                        onChange={e => setSanityConfig(c => ({ ...c, token: e.target.value }))}
+                        onChange={e => setSanityConfig(c => ({ ...c, token: e.target.value.trim() }))}
                         placeholder="sk..."
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#FF7F50] transition font-mono"
                       />
@@ -2114,14 +2212,65 @@ function AdminModal({
                   </div>
 
                   {sanityMsg && (
-                    <div className={`p-3 rounded-xl text-xs font-medium ${
+                    <div className={`p-3.5 rounded-2xl text-xs font-medium space-y-2 ${
                       sanityMsg.type === "success"
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
                         : sanityMsg.type === "error"
-                          ? "bg-red-50 text-red-700 border border-red-200"
-                          : "bg-blue-50 text-blue-700 border border-blue-200"
+                          ? "bg-red-50 text-red-800 border border-red-200"
+                          : "bg-blue-50 text-blue-800 border border-blue-200"
                     }`}>
-                      {sanityMsg.text}
+                      <div className="font-bold flex items-start gap-1.5">
+                        <span className="text-sm shrink-0">{sanityMsg.type === "success" ? "✓" : sanityMsg.type === "error" ? "✕" : "ℹ"}</span>
+                        <span className="leading-snug">{sanityMsg.text}</span>
+                      </div>
+
+                      {sanityMsg.errorType === "cors" && (
+                        <div className="bg-white/95 border border-red-200 rounded-xl p-3 space-y-2 text-red-900 mt-2">
+                          <p className="font-bold text-xs text-red-700">🚨 해결 방법 (CORS 등록 필요):</p>
+                          <p className="text-[11px] leading-relaxed">
+                            현재 사이트 주소(<strong>{sanityMsg.origin || (typeof window !== "undefined" ? window.location.origin : "")}</strong>)가 Sanity에 등록되어 있지 않아 브라우저에서 차단되었습니다.
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={copyCurrentOrigin}
+                              className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer"
+                            >
+                              {copiedOrigin ? "✓ 주소 복사 완료!" : "현재 사이트 주소 복사"}
+                            </button>
+                            {sanityMsg.manageUrl && (
+                              <a
+                                href={sanityMsg.manageUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="bg-[#1E2B3A] hover:bg-[#2C3E50] text-white text-xs font-bold px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1"
+                              >
+                                Sanity API 설정 바로가기 ↗
+                              </a>
+                            )}
+                          </div>
+                          <p className="text-[10.5px] text-red-700 pt-1">
+                            * Sanity 콘솔에서 [+ Add CORS origin] 클릭 후 주소를 붙여넣고 <strong className="underline">"Allow credentials"</strong>에 반드시 체크한 뒤 저장하세요!
+                          </p>
+                        </div>
+                      )}
+
+                      {sanityMsg.errorType === "notFound" && (
+                        <div className="bg-white/95 border border-red-200 rounded-xl p-3 space-y-1.5 text-red-900 mt-2">
+                          <p className="font-bold text-xs text-red-700">💡 Project ID 확인 가이드:</p>
+                          <p className="text-[11px]">
+                            Sanity 대시보드(sanity.io/manage) 첫 화면에서 프로젝트를 선택했을 때 상단에 표시되는 8~10자리 영숫자 ID(예: x9q8w2y1)를 입력해야 합니다.
+                          </p>
+                          <a
+                            href="https://www.sanity.io/manage"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-[#FF7F50] hover:underline font-bold inline-block"
+                          >
+                            Sanity 프로젝트 관리 페이지 열기 ↗
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -2129,9 +2278,12 @@ function AdminModal({
                     <button
                       onClick={handleTestSanity}
                       disabled={sanityLoading}
-                      className="bg-[#1E2B3A] hover:bg-[#2C3E50] text-white font-bold text-xs py-2.5 px-4 rounded-xl transition cursor-pointer disabled:opacity-50"
+                      className="bg-[#1E2B3A] hover:bg-[#2C3E50] text-white font-bold text-xs py-2.5 px-4 rounded-xl transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      {sanityLoading ? "연결 확인 중..." : "✓ 설정 저장 및 연결 테스트"}
+                      {sanityLoading && (
+                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      )}
+                      <span>{sanityLoading ? "연결 상태 정밀 진단 중..." : "✓ 설정 저장 및 연결 테스트"}</span>
                     </button>
                     <div className="grid grid-cols-2 gap-2">
                       <button
