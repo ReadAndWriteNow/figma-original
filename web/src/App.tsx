@@ -1,4 +1,37 @@
 import { useState, useEffect, useRef } from "react";
+import {
+  getSanityConfig,
+  saveLocalSanityConfig,
+  testSanityConnection,
+  fetchSanityData,
+  pushDataToSanity,
+  loadLocalData,
+  saveLocalData,
+  LOCAL_STORAGE_SITE_DATA_KEY,
+  LOCAL_STORAGE_QNA_KEY,
+  LOCAL_STORAGE_REVIEWS_KEY,
+  type SanityConfig,
+} from "./lib/sanity";
+
+const DEFAULT_VALUES: Record<string, string> = {
+  "header.title": "한우리 독서토론논술",
+  "header.subtitle": "파주운정 산내푸르지오 독서교실",
+  "intro.quote": "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간",
+  "intro.sub": "스스로 생각의 씨앗을 틔울 수 있도록 돕습니다.",
+  "about.slogan": "생각하는 힘이 아이의 미래를 바꿉니다",
+  "about.name": "원장 이해옥",
+  "about.career": "독서토론논술 교습소 운영 (10년 경력)\n해법·한우리 독서토론교습소 운영\n독서지도사 자격 보유",
+  "about.desc": "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다.",
+  "curriculum.elem_title": "저학년 / 고학년",
+  "curriculum.elem_body": "그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행.",
+  "curriculum.mid_title": "내신 및 심화 논술",
+  "curriculum.mid_body": "비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성.",
+  "info.hours": "평일 14:00 ~ 20:00 (주말 및 공휴일 휴무)",
+  "info.address": "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호",
+  "info.parking": "건물 뒷편 주차장 이용 가능",
+  "contact.desc": "우리 아이에게 딱 맞는 독서 논술 교육, 지금 바로 상담받아보세요!",
+  "contact.kakao": "http://pf.kakao.com/_xxxxxx",
+};
 
 const NAV_ITEMS = [
   { href: "about", label: "교습소 소개" },
@@ -50,8 +83,22 @@ function MapLoader() {
 /* ═══════════════════════════════════════
    MOBILE LAYOUT
 ═══════════════════════════════════════ */
-function MobileLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void }) {
+function MobileLayout({
+  onQna,
+  onReview,
+  values,
+  onOpenAdmin,
+}: {
+  onQna: () => void;
+  onReview: () => void;
+  values: Record<string, string>;
+  onOpenAdmin?: () => void;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const careerItems = (values["about.career"] || "독서토론논술 교습소 운영 (10년 경력)\n해법·한우리 독서토론교습소 운영\n독서지도사 자격 보유")
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
 
   return (
     <div style={{ fontFamily: "'Noto Sans KR', sans-serif", wordBreak: "keep-all" }}
@@ -65,9 +112,9 @@ function MobileLayout({ onQna, onReview }: { onQna: () => void; onReview: () => 
               Hanwoori Reading & Discussion
             </p>
             <h1 className="text-2xl font-extrabold leading-tight tracking-tight">
-              한우리 독서토론논술
+              {values["header.title"] || "한우리 독서토론논술"}
             </h1>
-            <p className="text-sm mt-1 text-orange-100">파주운정 산내푸르지오 독서교실</p>
+            <p className="text-sm mt-1 text-orange-100">{values["header.subtitle"] || "파주운정 산내푸르지오 독서교실"}</p>
           </div>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
@@ -116,10 +163,10 @@ function MobileLayout({ onQna, onReview }: { onQna: () => void; onReview: () => 
       {/* 인트로 띠 */}
       <div className="bg-[#FFF0EA] px-5 py-5 border-b border-orange-100">
         <p className="text-base font-semibold text-[#E8623A] leading-relaxed">
-          "아이의 생각이 깊어지고,<br />읽는 기쁨이 자라나는 따뜻한 공간"
+          "{values["intro.quote"] || "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간"}"
         </p>
         <p className="mt-1.5 text-xs text-[#6B7280] leading-relaxed">
-          스스로 생각의 씨앗을 틔울 수 있도록 돕습니다.
+          {values["intro.sub"] || "스스로 생각의 씨앗을 틔울 수 있도록 돕습니다."}
         </p>
       </div>
 
@@ -137,12 +184,12 @@ function MobileLayout({ onQna, onReview }: { onQna: () => void; onReview: () => 
 
         <div className="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 border-l-4 border-l-[#FF7F50] hover:-translate-y-1 transition-all duration-300 hover:shadow-md">
           <p className="text-[10px] font-bold tracking-widest text-[#FF7F50] uppercase mb-2">원장 소개</p>
-          <p className="text-base font-bold text-[#1E2B3A] leading-snug mb-3">
-            "생각하는 힘이<br />아이의 미래를 바꿉니다"
+          <p className="text-base font-bold text-[#1E2B3A] leading-snug mb-3 whitespace-pre-line">
+            "{values["about.slogan"] || "생각하는 힘이 아이의 미래를 바꿉니다"}"
           </p>
-          <p className="font-semibold text-sm text-[#1E2B3A] mb-3">원장 이해옥</p>
+          <p className="font-semibold text-sm text-[#1E2B3A] mb-3">{values["about.name"] || "원장 이해옥"}</p>
           <ul className="space-y-2">
-            {["독서토론논술 교습소 운영 (10년 경력)", "해법·한우리 독서토론교습소 운영", "독서지도사 자격 보유"].map((t) => (
+            {careerItems.map((t) => (
               <li key={t} className="flex items-start gap-2 text-sm text-[#6B7280]">
                 <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#FF7F50] mt-1.5" />
                 {t}
@@ -152,8 +199,8 @@ function MobileLayout({ onQna, onReview }: { onQna: () => void; onReview: () => 
         </div>
 
         <div className="mt-4 bg-[#FDFBF7] border border-[#E6DED0] rounded-2xl p-5">
-          <p className="text-sm text-[#6B7280] leading-relaxed mb-3">
-            단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다.
+          <p className="text-sm text-[#6B7280] leading-relaxed mb-3 whitespace-pre-line">
+            {values["about.desc"] || "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다."}
           </p>
           <p className="text-sm font-bold text-[#E8623A] leading-relaxed">
             평생 자산이 될{" "}
@@ -172,14 +219,14 @@ function MobileLayout({ onQna, onReview }: { onQna: () => void; onReview: () => 
         <div className="mt-5 space-y-4">
           <MobileCard
             badge="초등부"
-            title="저학년 / 고학년"
-            body="그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행."
+            title={values["curriculum.elem_title"] || "저학년 / 고학년"}
+            body={values["curriculum.elem_body"] || "그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행."}
             detail="소수 정예 최대 6명 그룹 수업"
           />
           <MobileCard
             badge="중등부"
-            title="내신 및 심화 논술"
-            body="비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성."
+            title={values["curriculum.mid_title"] || "내신 및 심화 논술"}
+            body={values["curriculum.mid_body"] || "비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성."}
             detail="내신 성적 향상 집중 지도"
           />
         </div>
@@ -219,9 +266,9 @@ function MobileLayout({ onQna, onReview }: { onQna: () => void; onReview: () => 
         <MobileSectionTitle>운영 안내 및 오시는 길</MobileSectionTitle>
         <div className="mt-5 bg-white rounded-2xl border border-gray-100 shadow-sm border-l-4 border-l-[#FF7F50] p-5">
           <ul className="space-y-4">
-            <MobileInfoItem icon="🕐" label="운영 시간" value="평일 14:00 ~ 20:00 (주말·공휴일 휴무)" />
-            <MobileInfoItem icon="📍" label="주소" value="경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호" />
-            <MobileInfoItem icon="🚗" label="주차" value="건물 뒷편 주차장 이용 가능" />
+            <MobileInfoItem icon="🕐" label="운영 시간" value={values["info.hours"] || "평일 14:00 ~ 20:00 (주말·공휴일 휴무)"} />
+            <MobileInfoItem icon="📍" label="주소" value={values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호"} />
+            <MobileInfoItem icon="🚗" label="주차" value={values["info.parking"] || "건물 뒷편 주차장 이용 가능"} />
           </ul>
         </div>
         <div className="mt-4 rounded-2xl overflow-hidden shadow-sm border border-gray-100">
@@ -251,11 +298,11 @@ function MobileLayout({ onQna, onReview }: { onQna: () => void; onReview: () => 
       {/* 상담 문의 */}
       <section id="contact" className="px-5 py-10 text-center">
         <MobileSectionTitle>상담 문의</MobileSectionTitle>
-        <p className="mt-3 text-sm text-[#6B7280] leading-relaxed">
-          우리 아이에게 딱 맞는 독서 논술 교육,<br />지금 바로 상담받아보세요!
+        <p className="mt-3 text-sm text-[#6B7280] leading-relaxed whitespace-pre-line">
+          {values["contact.desc"] || "우리 아이에게 딱 맞는 독서 논술 교육,\n지금 바로 상담받아보세요!"}
         </p>
         <a
-          href="http://pf.kakao.com/_xxxxxx"
+          href={values["contact.kakao"] || "http://pf.kakao.com/_xxxxxx"}
           target="_blank"
           rel="noreferrer"
           className="mt-6 flex items-center justify-center gap-2 bg-[#FF7F50] active:bg-[#E8623A] text-white font-bold text-base px-8 py-4 rounded-2xl shadow-lg shadow-orange-200"
@@ -266,8 +313,17 @@ function MobileLayout({ onQna, onReview }: { onQna: () => void; onReview: () => 
       </section>
 
       <footer className="bg-[#1E2B3A] text-[#8A9AB0] text-xs text-center py-6 px-5 leading-relaxed">
-        <p>© 2026 한우리 독서토론논술 파주운정 산내푸르지오독서교실</p>
-        <p className="mt-1 text-[#4A5A6A]">경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호</p>
+        <p>© 2026 {values["header.title"] || "한우리 독서토론논술"} {values["header.subtitle"] || "파주운정 산내푸르지오독서교실"}</p>
+        <p className="mt-1 text-[#4A5A6A]">{values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호"}</p>
+        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-center">
+          <button
+            onClick={onOpenAdmin}
+            className="text-[11px] text-gray-400 hover:text-orange-300 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 transition"
+          >
+            <span>⚙️</span>
+            <span>관리자 모드</span>
+          </button>
+        </div>
       </footer>
     </div>
   );
@@ -314,7 +370,22 @@ function MobileInfoItem({ icon, label, value }: { icon: string; label: string; v
 /* ═══════════════════════════════════════
    PC LAYOUT
 ═══════════════════════════════════════ */
-function PCLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void }) {
+function PCLayout({
+  onQna,
+  onReview,
+  values,
+  onOpenAdmin,
+}: {
+  onQna: () => void;
+  onReview: () => void;
+  values: Record<string, string>;
+  onOpenAdmin?: () => void;
+}) {
+  const careerItems = (values["about.career"] || "독서토론논술 교습소 운영 (10년 경력)\n해법·한우리 독서토론교습소 운영\n독서지도사 자격 보유")
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
+
   return (
     <div style={{ fontFamily: "'Noto Sans KR', sans-serif", wordBreak: "keep-all" }}
       className="min-h-screen bg-white text-[#1E2B3A]">
@@ -330,8 +401,10 @@ function PCLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void
               <p className="text-xs font-medium tracking-widest uppercase text-orange-100 mb-1">
                 Hanwoori Reading & Discussion
               </p>
-              <h1 className="text-5xl font-extrabold leading-tight tracking-tight">한우리 독서토론논술</h1>
-              <p className="text-xl mt-1 text-orange-100">파주운정 산내푸르지오 독서교실</p>
+              <h1 className="text-5xl font-extrabold leading-tight tracking-tight">
+                {values["header.title"] || "한우리 독서토론논술"}
+              </h1>
+              <p className="text-xl mt-1 text-orange-100">{values["header.subtitle"] || "파주운정 산내푸르지오 독서교실"}</p>
             </div>
           </div>
           <nav className="flex gap-2 flex-wrap">
@@ -358,9 +431,11 @@ function PCLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void
       <div className="bg-[#FFF0EA] border-b border-orange-100">
         <div className="max-w-5xl mx-auto px-10 py-8 text-center">
           <p className="text-2xl font-semibold text-[#E8623A] leading-relaxed">
-            "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간"
+            "{values["intro.quote"] || "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간"}"
           </p>
-          <p className="mt-2 text-sm text-[#6B7280]">단순히 지식을 채우기보다 스스로 생각의 씨앗을 틔울 수 있도록 돕습니다.</p>
+          <p className="mt-2 text-sm text-[#6B7280]">
+            {values["intro.sub"] || "단순히 지식을 채우기보다 스스로 생각의 씨앗을 틔울 수 있도록 돕습니다."}
+          </p>
         </div>
       </div>
 
@@ -370,12 +445,12 @@ function PCLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void
         <div className="grid grid-cols-2 gap-8 mt-10 items-stretch">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 border-l-4 border-l-[#FF7F50] hover:-translate-y-1 transition-all duration-300 hover:shadow-md">
             <p className="text-xs font-bold tracking-widest text-[#FF7F50] uppercase mb-3">원장 소개</p>
-            <h3 className="text-xl font-bold text-[#1E2B3A] mb-4 leading-snug">
-              "생각하는 힘이<br />아이의 미래를 바꿉니다"
+            <h3 className="text-xl font-bold text-[#1E2B3A] mb-4 leading-snug whitespace-pre-line">
+              "{values["about.slogan"] || "생각하는 힘이 아이의 미래를 바꿉니다"}"
             </h3>
-            <p className="font-semibold text-[#1E2B3A] mb-3">원장 이해옥</p>
+            <p className="font-semibold text-[#1E2B3A] mb-3">{values["about.name"] || "원장 이해옥"}</p>
             <ul className="space-y-2">
-              {["독서토론논술 교습소 운영 (10년 경력)", "해법·한우리 독서토론교습소 운영", "독서지도사 자격 보유"].map((t) => (
+              {careerItems.map((t) => (
                 <li key={t} className="flex items-start gap-2 text-sm text-[#6B7280]">
                   <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#FF7F50] mt-1.5" />
                   {t}
@@ -392,9 +467,8 @@ function PCLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void
           </div>
         </div>
         <div className="mt-8 bg-[#FDFBF7] border border-[#E6DED0] rounded-2xl p-8 text-center">
-          <p className="text-sm text-[#6B7280] leading-relaxed mb-4">
-            단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다.<br />
-            책 속에서 길을 찾고, 친구들과 생각을 나누며, 자신의 마음을 글로 당당하게 표현하는 힘을 기릅니다.
+          <p className="text-sm text-[#6B7280] leading-relaxed mb-4 whitespace-pre-line">
+            {values["about.desc"] || "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다.\n책 속에서 길을 찾고, 친구들과 생각을 나누며, 자신의 마음을 글로 당당하게 표현하는 힘을 기릅니다."}
           </p>
           <p className="text-lg font-bold text-[#E8623A]">
             평생 자산이 될{" "}
@@ -411,12 +485,18 @@ function PCLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void
       <section id="curriculum" className="max-w-5xl mx-auto px-10 py-20">
         <PCSectionTitle>커리큘럼 및 수업 방식</PCSectionTitle>
         <div className="grid grid-cols-2 gap-6 mt-10">
-          <PCCard badge="초등부" title="저학년 / 고학년"
-            body="그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행."
-            detail="소수 정예 4명 그룹 수업" />
-          <PCCard badge="중등부" title="내신 및 심화 논술"
-            body="비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성."
-            detail="내신 성적 향상 집중 지도" />
+          <PCCard
+            badge="초등부"
+            title={values["curriculum.elem_title"] || "저학년 / 고학년"}
+            body={values["curriculum.elem_body"] || "그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행."}
+            detail="소수 정예 4명 그룹 수업"
+          />
+          <PCCard
+            badge="중등부"
+            title={values["curriculum.mid_title"] || "내신 및 심화 논술"}
+            body={values["curriculum.mid_body"] || "비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성."}
+            detail="내신 성적 향상 집중 지도"
+          />
         </div>
         <p className="mt-6 text-center text-xs text-[#6B7280]">
           상세한 설명은 <button onClick={onQna} className="text-[#E8623A] underline underline-offset-2 bg-transparent border-none cursor-pointer">자주 묻는 질문</button>을 참고 부탁드립니다.
@@ -454,9 +534,9 @@ function PCLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void
         <PCSectionTitle>운영 안내 및 오시는 길</PCSectionTitle>
         <div className="mt-10 bg-white rounded-2xl border border-gray-100 shadow-sm border-l-4 border-l-[#FF7F50] p-8">
           <ul className="space-y-4">
-            <PCInfoItem icon="🕐" label="운영 시간" value="평일 14:00 ~ 20:00 (주말 및 공휴일 휴무)" />
-            <PCInfoItem icon="📍" label="주소" value="경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호" />
-            <PCInfoItem icon="🚗" label="주차 정보" value="건물 뒷편 주차장 이용 가능" />
+            <PCInfoItem icon="🕐" label="운영 시간" value={values["info.hours"] || "평일 14:00 ~ 20:00 (주말 및 공휴일 휴무)"} />
+            <PCInfoItem icon="📍" label="주소" value={values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호"} />
+            <PCInfoItem icon="🚗" label="주차 정보" value={values["info.parking"] || "건물 뒷편 주차장 이용 가능"} />
           </ul>
         </div>
         <div className="mt-6 rounded-2xl overflow-hidden shadow-sm border border-gray-100">
@@ -488,10 +568,12 @@ function PCLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void
       {/* 상담 문의 */}
       <section id="contact" className="max-w-5xl mx-auto px-10 py-20 text-center">
         <PCSectionTitle>상담 문의</PCSectionTitle>
-        <p className="mt-4 text-[#6B7280]">우리 아이에게 딱 맞는 독서 논술 교육, 지금 바로 상담받아보세요!</p>
+        <p className="mt-4 text-[#6B7280] whitespace-pre-line">
+          {values["contact.desc"] || "우리 아이에게 딱 맞는 독서 논술 교육, 지금 바로 상담받아보세요!"}
+        </p>
         <div className="mt-10">
           <a
-            href="http://pf.kakao.com/_xxxxxx"
+            href={values["contact.kakao"] || "http://pf.kakao.com/_xxxxxx"}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-3 bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-lg px-12 py-5 rounded-full shadow-lg shadow-orange-200 transition-all hover:-translate-y-1"
@@ -503,8 +585,17 @@ function PCLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void
       </section>
 
       <footer className="bg-[#1E2B3A] text-[#8A9AB0] text-sm text-center py-8 px-10">
-        <p>© 2026 한우리 독서토론논술 파주운정 산내푸르지오독서교실. All rights reserved.</p>
-        <p className="mt-1 text-xs text-[#4A5A6A]">경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호</p>
+        <p>© 2026 {values["header.title"] || "한우리 독서토론논술"} {values["header.subtitle"] || "파주운정 산내푸르지오독서교실"}. All rights reserved.</p>
+        <p className="mt-1 text-xs text-[#4A5A6A]">{values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호"}</p>
+        <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-center">
+          <button
+            onClick={onOpenAdmin}
+            className="text-xs text-gray-400 hover:text-orange-300 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 transition"
+          >
+            <span>⚙️</span>
+            <span>관리자 모드</span>
+          </button>
+        </div>
       </footer>
     </div>
   );
@@ -1432,7 +1523,12 @@ function QnaSectionEditor({ qnaList, onChange }: {
   );
 }
 
-const NAV_SIDEBAR = [...SECTIONS.map(s => ({ id: s.id, label: s.label })), { id: "qna", label: "자주 묻는 질문" }, { id: "reviews", label: "수업 소식" }];
+const NAV_SIDEBAR = [
+  ...SECTIONS.map(s => ({ id: s.id, label: s.label })),
+  { id: "qna", label: "자주 묻는 질문" },
+  { id: "reviews", label: "수업 소식" },
+  { id: "sanity", label: "Sanity DB 연동" },
+];
 
 /* ─── 수업 소식 편집기 ─── */
 function ReviewSectionEditor({ reviews, onChange }: { reviews: Review[]; onChange: (list: Review[]) => void }) {
@@ -1518,34 +1614,155 @@ function ReviewSectionEditor({ reviews, onChange }: { reviews: Review[]; onChang
   );
 }
 
-function AdminModal({ onClose, qnaList, onQnaChange, reviews, onReviewsChange }: {
+function AdminModal({
+  onClose,
+  qnaList,
+  onQnaChange,
+  reviews,
+  onReviewsChange,
+  values,
+  onValuesChange,
+}: {
   onClose: () => void;
   qnaList: QnaItem[];
   onQnaChange: (list: QnaItem[]) => void;
   reviews: Review[];
   onReviewsChange: (list: Review[]) => void;
+  values: Record<string, string>;
+  onValuesChange: (vals: Record<string, string>) => void;
 }) {
   const [step, setStep] = useState<"pw" | "edit">("pw");
   const [pw, setPw] = useState("");
   const [pwError, setPwError] = useState(false);
   const [activeSection, setActiveSection] = useState(NAV_SIDEBAR[0].id);
-  const [values, setValues] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    SECTIONS.forEach(s => s.fields.forEach(f => { init[`${s.id}.${f.key}`] = f.defaultValue; }));
-    return init;
-  });
+  const [localValues, setLocalValues] = useState<Record<string, string>>(values);
   const [saved, setSaved] = useState(false);
+  const [saveStatusMsg, setSaveStatusMsg] = useState("");
+
+  // Sanity 연동 관련 상태
+  const [sanityConfig, setSanityConfig] = useState<SanityConfig>(() => {
+    const cfg = getSanityConfig();
+    return (
+      cfg || {
+        projectId: "",
+        dataset: "production",
+        apiVersion: "2024-03-01",
+        token: "",
+      }
+    );
+  });
+  const [sanityLoading, setSanityLoading] = useState(false);
+  const [sanityMsg, setSanityMsg] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (pw === ADMIN_PW) { setStep("edit"); setPwError(false); }
-    else { setPwError(true); }
+    if (pw === ADMIN_PW) {
+      setStep("edit");
+      setPwError(false);
+    } else {
+      setPwError(true);
+    }
   }
 
-  function handleSave() {
-    console.log("저장할 데이터:", { values, qnaList });
+  async function handleSave() {
+    // 1. 화면 즉시 반영
+    onValuesChange(localValues);
+    // 2. 브라우저 localStorage 영구 저장
+    saveLocalData(LOCAL_STORAGE_SITE_DATA_KEY, localValues);
+    saveLocalData(LOCAL_STORAGE_QNA_KEY, qnaList);
+    saveLocalData(LOCAL_STORAGE_REVIEWS_KEY, reviews);
+
+    // 3. Sanity 토큰이 연결되어 있다면 Sanity DB에도 자동 동기화
+    const cfg = getSanityConfig();
+    if (cfg?.projectId && cfg?.token) {
+      setSaveStatusMsg("웹사이트 및 Sanity DB에 저장 중...");
+      try {
+        const res = await pushDataToSanity(localValues, qnaList, reviews);
+        if (res.success) {
+          setSaveStatusMsg("✓ 웹사이트 & Sanity DB에 모두 실시간 저장되었습니다!");
+        } else {
+          setSaveStatusMsg(`✓ 웹사이트 저장 완료 (Sanity 동기화 실패: ${res.message})`);
+        }
+      } catch (err: any) {
+        setSaveStatusMsg("✓ 웹사이트 저장 완료 (Sanity 동기화 중 오류 발생)");
+      }
+    } else {
+      setSaveStatusMsg("✓ 웹사이트에 즉시 저장 및 반영되었습니다!");
+    }
+
     setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setTimeout(() => {
+      setSaved(false);
+      setSaveStatusMsg("");
+    }, 3500);
+  }
+
+  async function handleTestSanity() {
+    if (!sanityConfig.projectId.trim()) {
+      setSanityMsg({ type: "error", text: "Sanity Project ID를 입력해 주세요." });
+      return;
+    }
+    setSanityLoading(true);
+    setSanityMsg({ type: "info", text: "Sanity DB 연결을 확인하는 중입니다..." });
+    saveLocalSanityConfig(sanityConfig);
+
+    const res = await testSanityConnection(sanityConfig);
+    setSanityLoading(false);
+    if (res.success) {
+      setSanityMsg({ type: "success", text: "✓ Sanity 연결 성공! 프로젝트와 정상 통신 중입니다." });
+    } else {
+      setSanityMsg({ type: "error", text: `✕ 연결 실패: ${res.message}` });
+    }
+  }
+
+  async function handlePushToSanity() {
+    if (!sanityConfig.projectId.trim()) {
+      setSanityMsg({ type: "error", text: "먼저 Project ID를 입력해 주세요." });
+      return;
+    }
+    if (!sanityConfig.token?.trim()) {
+      setSanityMsg({
+        type: "error",
+        text: "Sanity로 데이터를 전송하려면 Write 권한이 있는 API Token이 필요합니다 (Sanity 대시보드 API -> Tokens 발급).",
+      });
+      return;
+    }
+    setSanityLoading(true);
+    setSanityMsg({ type: "info", text: "Sanity DB로 데이터를 업로드 중입니다..." });
+    saveLocalSanityConfig(sanityConfig);
+
+    const res = await pushDataToSanity(localValues, qnaList, reviews);
+    setSanityLoading(false);
+    if (res.success) {
+      setSanityMsg({ type: "success", text: "✓ Sanity DB에 웹사이트 모든 데이터가 성공적으로 업로드되었습니다!" });
+    } else {
+      setSanityMsg({ type: "error", text: `✕ 업로드 실패: ${res.message}` });
+    }
+  }
+
+  async function handlePullFromSanity() {
+    setSanityLoading(true);
+    setSanityMsg({ type: "info", text: "Sanity DB에서 최신 데이터를 가져오는 중입니다..." });
+    const data = await fetchSanityData();
+    setSanityLoading(false);
+    if (data) {
+      if (data.values) {
+        setLocalValues(prev => ({ ...prev, ...data.values }));
+        onValuesChange({ ...localValues, ...data.values });
+        saveLocalData(LOCAL_STORAGE_SITE_DATA_KEY, { ...localValues, ...data.values });
+      }
+      if (data.qnaList && data.qnaList.length > 0) {
+        onQnaChange(data.qnaList);
+        saveLocalData(LOCAL_STORAGE_QNA_KEY, data.qnaList);
+      }
+      if (data.reviews && data.reviews.length > 0) {
+        onReviewsChange(data.reviews);
+        saveLocalData(LOCAL_STORAGE_REVIEWS_KEY, data.reviews);
+      }
+      setSanityMsg({ type: "success", text: "✓ Sanity DB에서 최신 데이터를 성공적으로 불러와 웹사이트에 반영했습니다!" });
+    } else {
+      setSanityMsg({ type: "error", text: "Sanity에서 데이터를 가져오지 못했습니다. Project ID 및 데이터셋을 확인하세요." });
+    }
   }
 
   const currentSection = SECTIONS.find(s => s.id === activeSection);
@@ -1560,9 +1777,9 @@ function AdminModal({ onClose, qnaList, onQnaChange, reviews, onReviewsChange }:
         {/* 헤더 */}
         <div className="bg-[#FF7F50] px-6 py-5 flex items-center justify-between shrink-0">
           <div>
-            <p className="text-xs font-semibold text-orange-100 uppercase tracking-widest">Admin</p>
+            <p className="text-xs font-semibold text-orange-100 uppercase tracking-widest">Admin Panel</p>
             <h2 className="text-lg font-extrabold text-white tracking-tight">
-              {step === "pw" ? "관리자 로그인" : "웹사이트 편집"}
+              {step === "pw" ? "관리자 로그인" : "웹사이트 실시간 편집 & Sanity DB 관리"}
             </h2>
           </div>
           <button onClick={onClose}
@@ -1574,7 +1791,9 @@ function AdminModal({ onClose, qnaList, onQnaChange, reviews, onReviewsChange }:
         {/* 비밀번호 */}
         {step === "pw" && (
           <form onSubmit={handleLogin} className="p-8 flex flex-col gap-4">
-            <p className="text-sm text-[#6B7280]">관리자 비밀번호를 입력해 주세요.</p>
+            <p className="text-sm text-[#6B7280]">
+              관리자 비밀번호를 입력해 주세요. (기본: <span className="font-mono text-[#FF7F50]">hanwoori2024</span>)
+            </p>
             <input
               type="password"
               value={pw}
@@ -1586,7 +1805,7 @@ function AdminModal({ onClose, qnaList, onQnaChange, reviews, onReviewsChange }:
             />
             {pwError && <p className="text-xs text-red-500">비밀번호가 올바르지 않습니다.</p>}
             <button type="submit"
-              className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold py-3 rounded-xl transition">
+              className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold py-3 rounded-xl transition cursor-pointer">
               로그인
             </button>
           </form>
@@ -1599,39 +1818,140 @@ function AdminModal({ onClose, qnaList, onQnaChange, reviews, onReviewsChange }:
             <div className="w-36 shrink-0 border-r border-gray-100 bg-[#f9fafb] py-4 overflow-y-auto">
               {NAV_SIDEBAR.map(s => (
                 <button key={s.id} onClick={() => setActiveSection(s.id)}
-                  className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition
+                  className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition cursor-pointer
                     ${activeSection === s.id
                       ? "bg-[#FFF0EA] text-[#E8623A] border-r-2 border-[#FF7F50]"
                       : "text-[#6B7280] hover:bg-gray-100"}`}>
-                  {s.label}
+                  {s.id === "sanity" ? "⚡ " + s.label : s.label}
                 </button>
               ))}
             </div>
 
-            {/* 폼 */}
+            {/* 폼 영역 */}
             <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
               {activeSection === "qna" ? (
                 <QnaSectionEditor qnaList={qnaList} onChange={onQnaChange} />
               ) : activeSection === "reviews" ? (
                 <ReviewSectionEditor reviews={reviews} onChange={onReviewsChange} />
+              ) : activeSection === "sanity" ? (
+                /* ─── Sanity DB 연동 설정 탭 ─── */
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#1E2B3A] flex items-center gap-2">
+                      <span>⚡ Sanity CMS 데이터베이스 연동</span>
+                    </h3>
+                    <p className="text-xs text-[#6B7280] mt-1 leading-relaxed">
+                      Sanity.io 프로젝트와 연결하면 관리자 모드에서 수정한 내용이 클라우드 DB에 영구 보존되고 Vercel 배포 시 모든 방문자에게 최신 내용이 노출됩니다.
+                    </p>
+                  </div>
+
+                  <div className="bg-[#FFF0EA]/40 border border-orange-200 rounded-2xl p-4 text-xs text-[#8A5030] space-y-1">
+                    <p className="font-bold text-[#E8623A]">💡 간편 연동 팁</p>
+                    <p>1. Sanity.io 무료 가입 후 프로젝트의 <strong>Project ID</strong>를 입력하세요.</p>
+                    <p>2. Vercel 배포 시 환경 변수(<code>VITE_SANITY_PROJECT_ID</code>)로 설정해도 되고, 여기서 직접 저장해두셔도 바로 작동합니다.</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#6B7280] mb-1">
+                        Sanity Project ID <span className="text-[#FF7F50]">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={sanityConfig.projectId}
+                        onChange={e => setSanityConfig(c => ({ ...c, projectId: e.target.value }))}
+                        placeholder="예: x9q8w2y1"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#FF7F50] transition font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-[#6B7280] mb-1">Dataset (기본: production)</label>
+                      <input
+                        type="text"
+                        value={sanityConfig.dataset}
+                        onChange={e => setSanityConfig(c => ({ ...c, dataset: e.target.value }))}
+                        placeholder="production"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#FF7F50] transition font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-[#6B7280] mb-1">
+                        API Token (Editor/Write 권한 — 웹에서 직접 Sanity 저장 시 필요)
+                      </label>
+                      <input
+                        type="password"
+                        value={sanityConfig.token || ""}
+                        onChange={e => setSanityConfig(c => ({ ...c, token: e.target.value }))}
+                        placeholder="sk..."
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#FF7F50] transition font-mono"
+                      />
+                      <p className="text-[11px] text-[#888] mt-1">
+                        * Sanity 대시보드 &gt; API &gt; Tokens에서 'Editor' 권한으로 생성 가능합니다.
+                      </p>
+                    </div>
+                  </div>
+
+                  {sanityMsg && (
+                    <div className={`p-3 rounded-xl text-xs font-medium ${
+                      sanityMsg.type === "success"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : sanityMsg.type === "error"
+                          ? "bg-red-50 text-red-700 border border-red-200"
+                          : "bg-blue-50 text-blue-700 border border-blue-200"
+                    }`}>
+                      {sanityMsg.text}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      onClick={handleTestSanity}
+                      disabled={sanityLoading}
+                      className="bg-[#1E2B3A] hover:bg-[#2C3E50] text-white font-bold text-xs py-2.5 px-4 rounded-xl transition cursor-pointer disabled:opacity-50"
+                    >
+                      {sanityLoading ? "연결 확인 중..." : "✓ 설정 저장 및 연결 테스트"}
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={handlePushToSanity}
+                        disabled={sanityLoading}
+                        className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-xs py-2.5 px-3 rounded-xl transition cursor-pointer disabled:opacity-50 text-center"
+                      >
+                        🚀 현재 데이터를 Sanity로 업로드
+                      </button>
+                      <button
+                        onClick={handlePullFromSanity}
+                        disabled={sanityLoading}
+                        className="border border-gray-200 hover:bg-gray-50 text-[#1E2B3A] font-bold text-xs py-2.5 px-3 rounded-xl transition cursor-pointer disabled:opacity-50 text-center"
+                      >
+                        📥 Sanity에서 최신 데이터 가져오기
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ) : currentSection ? (
                 <>
-                  <h3 className="text-sm font-extrabold text-[#1E2B3A] tracking-tight">{currentSection.label}</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-extrabold text-[#1E2B3A] tracking-tight">{currentSection.label}</h3>
+                    <span className="text-[11px] text-gray-400">수정 후 아래 '저장하기'를 클릭하세요</span>
+                  </div>
                   {currentSection.fields.map(f => (
                     <div key={f.key}>
                       <label className="block text-xs font-semibold text-[#6B7280] mb-1.5">{f.label}</label>
                       {f.type === "textarea" ? (
                         <textarea
                           rows={4}
-                          value={values[`${currentSection.id}.${f.key}`]}
-                          onChange={e => setValues(v => ({ ...v, [`${currentSection.id}.${f.key}`]: e.target.value }))}
+                          value={localValues[`${currentSection.id}.${f.key}`] ?? ""}
+                          onChange={e => setLocalValues(v => ({ ...v, [`${currentSection.id}.${f.key}`]: e.target.value }))}
                           className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF7F50] transition resize-none leading-relaxed"
                         />
                       ) : (
                         <input
                           type="text"
-                          value={values[`${currentSection.id}.${f.key}`]}
-                          onChange={e => setValues(v => ({ ...v, [`${currentSection.id}.${f.key}`]: e.target.value }))}
+                          value={localValues[`${currentSection.id}.${f.key}`] ?? ""}
+                          onChange={e => setLocalValues(v => ({ ...v, [`${currentSection.id}.${f.key}`]: e.target.value }))}
                           className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF7F50] transition"
                         />
                       )}
@@ -1640,23 +1960,25 @@ function AdminModal({ onClose, qnaList, onQnaChange, reviews, onReviewsChange }:
                 </>
               ) : null}
 
-              {/* 저장 버튼 — QnA·리뷰 탭은 자체 저장 */}
-              {activeSection !== "qna" && activeSection !== "reviews" && (
-                <div className="mt-2 flex items-center gap-3">
-                  <button onClick={handleSave}
-                    className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-sm px-6 py-2.5 rounded-xl transition">
-                    저장하기
-                  </button>
-                  {saved && (
-                    <span className="text-xs text-emerald-600 font-semibold animate-pulse">
-                      ✓ 저장됐습니다 (Sanity 연동 후 반영)
-                    </span>
-                  )}
+              {/* 저장 버튼 (QnA, 수업소식, Sanity 설정 제외 탭) */}
+              {activeSection !== "qna" && activeSection !== "reviews" && activeSection !== "sanity" && (
+                <div className="mt-2 flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    <button onClick={handleSave}
+                      className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-sm px-7 py-3 rounded-xl transition cursor-pointer shadow-md shadow-orange-100">
+                      저장하기
+                    </button>
+                    {saved && (
+                      <span className="text-xs text-emerald-600 font-bold animate-pulse">
+                        {saveStatusMsg || "✓ 웹사이트에 즉시 반영되었습니다!"}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[#888]">
+                    * 저장을 누르면 즉시 웹사이트 화면에 반영되고 브라우저 및 연결된 Sanity DB에 저장됩니다.
+                  </p>
                 </div>
               )}
-              <p className="text-[10px] text-[#aaa] mt-1">
-                * Sanity CMS 연동 전까지는 실제 페이지에 반영되지 않습니다.
-              </p>
             </div>
           </div>
         )}
@@ -1672,16 +1994,67 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [page, setPage] = useState<"home" | "qna" | "reviews">("home");
   const [adminOpen, setAdminOpen] = useState(false);
-  const [liveQna, setLiveQna] = useState<QnaItem[]>(QNA_LIST);
-  const [liveReviews, setLiveReviews] = useState<Review[]>(REVIEW_SAMPLES);
+
+  // 로컬 영구 저장소 또는 기본값으로 상태 복원
+  const [siteValues, setSiteValues] = useState<Record<string, string>>(() =>
+    loadLocalData(LOCAL_STORAGE_SITE_DATA_KEY, DEFAULT_VALUES)
+  );
+  const [liveQna, setLiveQna] = useState<QnaItem[]>(() =>
+    loadLocalData(LOCAL_STORAGE_QNA_KEY, QNA_LIST)
+  );
+  const [liveReviews, setLiveReviews] = useState<Review[]>(() =>
+    loadLocalData(LOCAL_STORAGE_REVIEWS_KEY, REVIEW_SAMPLES)
+  );
+
   const footerClickCount = useRef(0);
   const footerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 화면 리사이즈 감지
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
+
+  // 앱 마운트 시: Sanity DB에 저장된 최신 데이터가 있다면 자동 동기화
+  useEffect(() => {
+    fetchSanityData().then(remote => {
+      if (remote) {
+        if (remote.values && Object.keys(remote.values).length > 0) {
+          setSiteValues(prev => {
+            const merged = { ...prev, ...remote.values };
+            saveLocalData(LOCAL_STORAGE_SITE_DATA_KEY, merged);
+            return merged;
+          });
+        }
+        if (remote.qnaList && remote.qnaList.length > 0) {
+          setLiveQna(remote.qnaList);
+          saveLocalData(LOCAL_STORAGE_QNA_KEY, remote.qnaList);
+        }
+        if (remote.reviews && remote.reviews.length > 0) {
+          setLiveReviews(remote.reviews);
+          saveLocalData(LOCAL_STORAGE_REVIEWS_KEY, remote.reviews);
+        }
+      }
+    }).catch(e => {
+      console.log("Sanity 자동 동기화 대기 중", e);
+    });
+  }, []);
+
+  function handleQnaChange(list: QnaItem[]) {
+    setLiveQna(list);
+    saveLocalData(LOCAL_STORAGE_QNA_KEY, list);
+  }
+
+  function handleReviewsChange(list: Review[]) {
+    setLiveReviews(list);
+    saveLocalData(LOCAL_STORAGE_REVIEWS_KEY, list);
+  }
+
+  function handleValuesChange(vals: Record<string, string>) {
+    setSiteValues(vals);
+    saveLocalData(LOCAL_STORAGE_SITE_DATA_KEY, vals);
+  }
 
   function handleFooterClick() {
     footerClickCount.current += 1;
@@ -1695,7 +2068,17 @@ export default function App() {
 
   return (
     <>
-      {adminOpen && <AdminModal onClose={() => setAdminOpen(false)} qnaList={liveQna} onQnaChange={setLiveQna} reviews={liveReviews} onReviewsChange={setLiveReviews} />}
+      {adminOpen && (
+        <AdminModal
+          onClose={() => setAdminOpen(false)}
+          qnaList={liveQna}
+          onQnaChange={handleQnaChange}
+          reviews={liveReviews}
+          onReviewsChange={handleReviewsChange}
+          values={siteValues}
+          onValuesChange={handleValuesChange}
+        />
+      )}
       <div onClick={e => {
         const footer = (e.target as HTMLElement).closest("footer");
         if (footer) handleFooterClick();
@@ -1705,8 +2088,18 @@ export default function App() {
           : page === "reviews"
             ? <ReviewPage onBack={() => { setPage("home"); window.scrollTo(0, 0); }} reviews={liveReviews} />
             : isMobile
-              ? <MobileLayout onQna={() => setPage("qna")} onReview={() => setPage("reviews")} />
-              : <PCLayout onQna={() => setPage("qna")} onReview={() => setPage("reviews")} />
+              ? <MobileLayout
+                  onQna={() => setPage("qna")}
+                  onReview={() => setPage("reviews")}
+                  values={siteValues}
+                  onOpenAdmin={() => setAdminOpen(true)}
+                />
+              : <PCLayout
+                  onQna={() => setPage("qna")}
+                  onReview={() => setPage("reviews")}
+                  values={siteValues}
+                  onOpenAdmin={() => setAdminOpen(true)}
+                />
         }
       </div>
     </>

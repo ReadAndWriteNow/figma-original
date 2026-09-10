@@ -1,0 +1,42 @@
+export default {
+  name: 'siteSettings',
+  title: '웹사이트 설정',
+  type: 'document',
+  fields: [
+    {
+      name: 'title',
+      title: '설정 이름',
+      type: 'string',
+      initialValue: '웹사이트 설정',
+    },
+    {
+      name: 'values',
+      title: '페이지 문구 및 설정값',
+      type: 'object',
+      fields: [
+        { name: 'header.title', title: '헤더 제목', type: 'string' },
+        { name: 'header.subtitle', title: '헤더 부제목', type: 'string' },
+        { name: 'intro.quote', title: '인트로 인용구', type: 'string' },
+        { name: 'intro.sub', title: '인트로 보조문구', type: 'string' },
+        { name: 'about.slogan', title: '원장소개 슬로건', type: 'string' },
+        { name: 'about.name', title: '원장 이름', type: 'string' },
+        { name: 'about.career', title: '원장 경력', type: 'text' },
+        { name: 'about.desc', title: '교육 철학', type: 'text' },
+        { name: 'curriculum.elem_title', title: '초등부 제목', type: 'string' },
+        { name: 'curriculum.elem_body', title: '초등부 설명', type: 'text' },
+        { name: 'curriculum.mid_title', title: '중등부 제목', type: 'string' },
+        { name: 'curriculum.mid_body', title: '중등부 설명', type: 'text' },
+        { name: 'info.hours', title: '운영 시간', type: 'string' },
+        { name: 'info.address', title: '주소', type: 'string' },
+        { name: 'info.parking', title: '주차 안내', type: 'string' },
+        { name: 'contact.desc', title: '상담 안내 문구', type: 'string' },
+        { name: 'contact.kakao', title: '카카오톡 상담 링크', type: 'string' },
+      ],
+    },
+    {
+      name: 'updatedAt',
+      title: '최종 수정일시',
+      type: 'datetime',
+    },
+  ],
+};
