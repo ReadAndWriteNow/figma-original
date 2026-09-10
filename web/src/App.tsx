@@ -1841,12 +1841,13 @@ function AdminModal({
   const [sanityMsg, setSanityMsg] = useState<{
     type: "success" | "error" | "info";
     text: string;
-    errorType?: "cors" | "notFound" | "unauthorized" | "invalidId" | "unknown";
+    errorType?: "cors" | "notFound" | "unauthorized" | "insufficient_permissions" | "invalidId" | "unknown";
     origin?: string;
     manageUrl?: string;
     cleanProjectId?: string;
   } | null>(null);
   const [copiedOrigin, setCopiedOrigin] = useState(false);
+  const [showToken, setShowToken] = useState(false);
 
   function copyCurrentOrigin() {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -1984,21 +1985,22 @@ function AdminModal({
       return;
     }
     setSanityLoading(true);
-    setSanityMsg({ type: "info", text: "Sanity DB로 데이터를 업로드 중입니다..." });
+    setSanityMsg({ type: "info", text: "Sanity DB로 웹사이트 전체 데이터를 업로드 중입니다..." });
     saveLocalSanityConfig(cleaned);
 
-    const res = await pushDataToSanity(localValues, qnaList, reviews);
+    const res = await pushDataToSanity(localValues, qnaList, reviews, cleaned);
     setSanityLoading(false);
     if (res.success) {
-      setSanityMsg({ type: "success", text: "✓ Sanity DB에 웹사이트 모든 데이터가 성공적으로 업로드되었습니다!" });
+      setSanityMsg({ type: "success", text: res.message });
     } else {
-      const isCors = res.message?.includes("Failed to fetch") || res.message?.includes("NetworkError");
+      const isCors = res.errorType === "cors" || res.message?.includes("Failed to fetch") || res.message?.includes("NetworkError");
       setSanityMsg({
         type: "error",
-        text: `✕ 업로드 실패: ${res.message}`,
-        errorType: isCors ? "cors" : "unknown",
+        text: res.message,
+        errorType: (res.errorType as any) || (isCors ? "cors" : "unknown"),
         origin: typeof window !== "undefined" ? window.location.origin : "",
         manageUrl: `https://www.sanity.io/manage/project/${cleaned.projectId}/api`,
+        cleanProjectId: cleaned.projectId,
       });
     }
   }
@@ -2195,19 +2197,44 @@ function AdminModal({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[#6B7280] mb-1">
-                        API Token (Editor/Write 권한 — 웹에서 직접 Sanity 저장 시 필요)
-                      </label>
-                      <input
-                        type="password"
-                        value={sanityConfig.token || ""}
-                        onChange={e => setSanityConfig(c => ({ ...c, token: e.target.value.trim() }))}
-                        placeholder="sk..."
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#FF7F50] transition font-mono"
-                      />
-                      <p className="text-[11px] text-[#888] mt-1">
-                        * Sanity 대시보드 &gt; API &gt; Tokens에서 'Editor' 권한으로 생성 가능합니다.
-                      </p>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-semibold text-[#6B7280]">
+                          API Token (⭐️ <strong className="text-[#E8623A]">Editor 권한</strong> 필수 — 데이터 업로드 시 필요)
+                        </label>
+                        {cleanSanityConfig(sanityConfig).projectId && (
+                          <a
+                            href={`https://www.sanity.io/manage/project/${cleanSanityConfig(sanityConfig).projectId}/api#tokens`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] underline text-[#FF7F50] hover:text-[#E8623A] font-bold"
+                          >
+                            Sanity Token 발급 페이지 ↗
+                          </a>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={showToken ? "text" : "password"}
+                          value={sanityConfig.token || ""}
+                          onChange={e => setSanityConfig(c => ({ ...c, token: e.target.value.trim() }))}
+                          placeholder="sk..."
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-16 text-sm outline-none focus:border-[#FF7F50] transition font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowToken(v => !v)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-500 hover:text-[#1E2B3A] px-2 py-1 bg-gray-100 rounded-md cursor-pointer"
+                        >
+                          {showToken ? "숨기기" : "보기"}
+                        </button>
+                      </div>
+                      <div className="bg-[#FFF0EA]/70 border border-orange-200/70 rounded-xl p-2.5 mt-1.5 text-[11px] text-[#8A5030] space-y-0.5">
+                        <p className="font-bold text-[#E8623A]">💡 API Token 발급 방법 (1분 완료):</p>
+                        <p>1. Sanity 대시보드 &gt; <strong>API &gt; Tokens</strong>에서 <strong>[+ Add API token]</strong> 클릭</p>
+                        <p>2. Name은 자유롭게(예: <code>my-web</code>) 입력</p>
+                        <p>3. Permissions에서 반드시 <strong className="text-red-700 underline font-extrabold">[Editor]</strong> (또는 Administrator) 선택 후 Save!</p>
+                        <p className="text-[10.5px] text-gray-500">※ 주의: 기본값 'Viewer'는 읽기 전용이므로 업로드가 차단됩니다.</p>
+                      </div>
                     </div>
                   </div>
 
@@ -2223,6 +2250,34 @@ function AdminModal({
                         <span className="text-sm shrink-0">{sanityMsg.type === "success" ? "✓" : sanityMsg.type === "error" ? "✕" : "ℹ"}</span>
                         <span className="leading-snug">{sanityMsg.text}</span>
                       </div>
+
+                      {(sanityMsg.errorType === "unauthorized" || sanityMsg.errorType === "insufficient_permissions") && (
+                        <div className="bg-white/95 border border-red-200 rounded-xl p-3 space-y-2 text-red-900 mt-2">
+                          <p className="font-bold text-xs text-red-700">🚨 해결 방법 (Token 권한 설정):</p>
+                          <p className="text-[11px] leading-relaxed">
+                            {sanityMsg.errorType === "insufficient_permissions"
+                              ? "현재 입력된 토큰이 'Viewer (읽기 전용)' 권한이라 업로드가 거부되었습니다. 'Editor' 권한의 토큰이 필요합니다."
+                              : "API Token이 입력되지 않았거나 만료되었습니다. Sanity 대시보드에서 Editor 권한의 Token을 발급받아 붙여넣어 주세요."}
+                          </p>
+                          {cleanSanityConfig(sanityConfig).projectId && (
+                            <div className="pt-1">
+                              <a
+                                href={`https://www.sanity.io/manage/project/${cleanSanityConfig(sanityConfig).projectId}/api#tokens`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                Sanity API Tokens 페이지 바로가기 ↗
+                              </a>
+                            </div>
+                          )}
+                          <div className="text-[11px] text-red-800 space-y-0.5 pt-1">
+                            <p>1. 위 링크로 이동 후 <strong>[+ Add API token]</strong> 클릭</p>
+                            <p>2. Permissions에서 <strong className="underline font-bold">"Editor"</strong> 선택 후 Save</p>
+                            <p>3. 생성된 <code>sk...</code> 토큰을 복사하여 위 입력칸에 붙여넣고 다시 업로드 클릭!</p>
+                          </div>
+                        </div>
+                      )}
 
                       {sanityMsg.errorType === "cors" && (
                         <div className="bg-white/95 border border-red-200 rounded-xl p-3 space-y-2 text-red-900 mt-2">

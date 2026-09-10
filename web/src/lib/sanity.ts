@@ -13,7 +13,7 @@ const LOCAL_STORAGE_SITE_DATA_KEY = 'hanwoori_site_content_v1';
 const LOCAL_STORAGE_QNA_KEY = 'hanwoori_qna_list_v1';
 const LOCAL_STORAGE_REVIEWS_KEY = 'hanwoori_reviews_list_v1';
 
-// Sanity 설정 정제 (공백 제거, URL에서 Project ID 추출 등)
+// Sanity 설정 정제 (공백 제거, URL에서 Project ID 추출, Token 정제 등)
 export function cleanSanityConfig(raw: SanityConfig): SanityConfig {
   let pid = (raw.projectId || '').trim();
   // 사용자가 URL을 통째로 붙여넣은 경우 (예: https://www.sanity.io/manage/project/x9q8w2y1)
@@ -28,7 +28,15 @@ export function cleanSanityConfig(raw: SanityConfig): SanityConfig {
   pid = pid.replace(/[^a-zA-Z0-9_-]/g, '');
 
   const ds = (raw.dataset || '').trim() || 'production';
-  const token = (raw.token || '').trim();
+  let token = (raw.token || '').trim();
+
+  // 사용자가 "Bearer sk..." 형태로 복사했거나 따옴표가 들어간 경우 정제
+  if (token.toLowerCase().startsWith('bearer ')) {
+    token = token.slice(7).trim();
+  }
+  if ((token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"))) {
+    token = token.slice(1, -1).trim();
+  }
 
   return {
     projectId: pid,
@@ -250,8 +258,22 @@ export async function fetchSanityData(): Promise<{
 
     const result: { values?: Record<string, string>; qnaList?: any[]; reviews?: any[] } = {};
 
-    if (siteSettings?.values) {
-      result.values = siteSettings.values;
+    // 1. values 복원 (valuesJson 우선, 없으면 values 객체 복원)
+    if (siteSettings?.valuesJson) {
+      try {
+        result.values = JSON.parse(siteSettings.valuesJson);
+      } catch (e) {
+        console.warn('valuesJson 파싱 실패:', e);
+      }
+    }
+    if (!result.values && siteSettings?.values && typeof siteSettings.values === 'object') {
+      const restored: Record<string, string> = {};
+      for (const [k, v] of Object.entries(siteSettings.values)) {
+        // __dot__ 또는 _를 .으로 복원
+        const origKey = k.replace(/__dot__/g, '.');
+        restored[origKey] = String(v ?? '');
+      }
+      result.values = restored;
     }
 
     if (Array.isArray(qnaItems) && qnaItems.length > 0) {
@@ -281,16 +303,19 @@ export async function fetchSanityData(): Promise<{
 export async function pushDataToSanity(
   values: Record<string, string>,
   qnaList: any[],
-  reviews: any[]
-): Promise<{ success: boolean; message: string }> {
-  const config = getSanityConfig();
-  if (!config) {
-    return { success: false, message: 'Sanity 설정이 없습니다.' };
+  reviews: any[],
+  customConfig?: SanityConfig | null
+): Promise<{ success: boolean; message: string; errorType?: string }> {
+  const rawConfig = customConfig || getSanityConfig();
+  if (!rawConfig) {
+    return { success: false, message: 'Sanity 설정(Project ID)이 입력되지 않았습니다.', errorType: 'invalidId' };
   }
+  const config = cleanSanityConfig(rawConfig);
   if (!config.token) {
     return {
       success: false,
-      message: 'Sanity에 데이터를 저장하려면 Write 권한이 있는 API Token이 필요합니다 (Sanity 대시보드 > API > Tokens에서 생성).',
+      message: 'Sanity로 데이터를 업로드하려면 Write 권한이 있는 API Token이 필요합니다 (Sanity 대시보드 API > Tokens에서 생성).',
+      errorType: 'unauthorized',
     };
   }
 
@@ -301,51 +326,105 @@ export async function pushDataToSanity(
 
   try {
     // 1. siteSettings 저장
+    // 중요: Sanity는 필드 키에 마침표(.)를 허용하지 않으므로 valuesJson(JSON 직렬화) 및 __dot__ 치환 객체를 함께 보관합니다.
+    const safeValues: Record<string, string> = {};
+    for (const [k, v] of Object.entries(values || {})) {
+      const safeKey = k.replace(/\./g, '__dot__');
+      safeValues[safeKey] = String(v ?? '');
+    }
+
     await client.createOrReplace({
       _id: 'siteSettings',
       _type: 'siteSettings',
       title: '웹사이트 설정',
-      values: values,
+      valuesJson: JSON.stringify(values || {}),
+      values: safeValues,
       updatedAt: new Date().toISOString(),
     });
 
-    // 2. qna 저장 (기존 qna 삭제 후 재생성 또는 batch)
+    // 2. qna 저장
     const existingQna = await client.fetch('*[_type == "qnaItem"]._id');
-    const transaction = client.transaction();
-    for (const id of existingQna) {
-      transaction.delete(id);
+    const qnaTx = client.transaction();
+    if (Array.isArray(existingQna)) {
+      for (const id of existingQna) {
+        if (typeof id === 'string') {
+          qnaTx.delete(id);
+        }
+      }
     }
-    qnaList.forEach((item, index) => {
-      transaction.create({
+    (qnaList || []).forEach((item, index) => {
+      qnaTx.create({
         _type: 'qnaItem',
         order: index,
-        question: item.q,
-        answer: item.a,
+        question: item.q || '',
+        answer: item.a || '',
       });
     });
+    await qnaTx.commit();
 
     // 3. reviews 저장
     const existingReviews = await client.fetch('*[_type == "reviewItem"]._id');
-    for (const id of existingReviews) {
-      transaction.delete(id);
+    const reviewTx = client.transaction();
+    if (Array.isArray(existingReviews)) {
+      for (const id of existingReviews) {
+        if (typeof id === 'string') {
+          reviewTx.delete(id);
+        }
+      }
     }
-    reviews.forEach((item) => {
-      transaction.create({
+    (reviews || []).forEach((item, index) => {
+      reviewTx.create({
         _type: 'reviewItem',
-        reviewId: item.id,
-        title: item.title,
-        date: item.date,
-        body: item.body,
+        reviewId: Number(item.id) || index + 1,
+        title: item.title || '',
+        date: item.date || new Date().toISOString().slice(0, 10),
+        body: item.body || '',
       });
     });
+    await reviewTx.commit();
 
-    await transaction.commit();
-    return { success: true, message: 'Sanity DB에 성공적으로 저장 및 동기화되었습니다!' };
+    return { success: true, message: '✓ Sanity DB에 웹사이트 모든 문구와 Q&A, 후기 데이터가 안전하게 저장되었습니다!' };
   } catch (error: any) {
     console.error('Sanity 저장 오류:', error);
+    const statusCode = error?.statusCode || error?.response?.statusCode;
+    const bodyError = error?.response?.body?.error || error?.response?.body?.message || '';
+    const errStr = String(error?.message || error || '');
+
+    if (statusCode === 401) {
+      return {
+        success: false,
+        errorType: 'unauthorized',
+        message: 'API Token 인증 실패(401 Unauthorized): 입력하신 Token이 올바르지 않거나 만료되었습니다. Sanity 대시보드(API > Tokens)에서 새 토큰을 발급받아 입력해 주세요.',
+      };
+    }
+    if (
+      statusCode === 403 ||
+      errStr.toLowerCase().includes('insufficient') ||
+      String(bodyError).toLowerCase().includes('insufficient')
+    ) {
+      return {
+        success: false,
+        errorType: 'insufficient_permissions',
+        message: "토큰 권한 부족(403 Forbidden): 발급받으신 토큰의 권한이 'Viewer(읽기 전용)'로 되어 있습니다. Sanity 대시보드(API > Tokens)에서 권한을 꼭 '[Editor]'로 선택하여 새 토큰을 만들어 입력해 주세요!",
+      };
+    }
+    if (
+      errStr.includes('Failed to fetch') ||
+      errStr.includes('NetworkError') ||
+      errStr.includes('Load failed') ||
+      errStr.includes('Network request failed')
+    ) {
+      return {
+        success: false,
+        errorType: 'cors',
+        message: '브라우저 CORS 차단: Sanity 대시보드(API > CORS Origins)에 현재 주소를 등록하고 "Allow credentials" 체크박스를 꼭 활성화해야 데이터를 업로드할 수 있습니다.',
+      };
+    }
+
     return {
       success: false,
-      message: error?.message || 'Sanity 저장에 실패했습니다. API Token의 권한(Editor 이상)을 확인하세요.',
+      errorType: 'unknown',
+      message: `Sanity 저장 실패 (${statusCode ? `HTTP ${statusCode}` : ''}): ${bodyError || errStr}`,
     };
   }
 }
