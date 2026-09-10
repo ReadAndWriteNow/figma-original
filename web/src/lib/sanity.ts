@@ -14,7 +14,7 @@ const LOCAL_STORAGE_QNA_KEY = 'hanwoori_qna_list_v1';
 const LOCAL_STORAGE_REVIEWS_KEY = 'hanwoori_reviews_list_v1';
 
 // Sanity Project ID 기본값 (Vercel 환경 변수가 없을 때 모든 방문자에게 자동 적용할 기본값)
-export const FALLBACK_PROJECT_ID = '';
+export const FALLBACK_PROJECT_ID = '8vs8axo9';
 
 // Sanity 설정 정제 (공백 제거, URL에서 Project ID 추출, Token 정제 등)
 export function cleanSanityConfig(raw: SanityConfig): SanityConfig {
