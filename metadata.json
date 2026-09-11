@@ -1,0 +1,6 @@
+{
+  "name": "한우리 독서토론논술 파주운정",
+  "description": "파주운정 산내푸르지오 한우리 독서토론논술 교습소. 초등·중등 소수 정예 독서토론·논술 수업.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

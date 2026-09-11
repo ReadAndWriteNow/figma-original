@@ -345,10 +345,12 @@ export async function fetchSanityData(): Promise<{
   if (!client) return null;
 
   try {
+    // 캐시 방지 타임스탬프를 쿼리 파라미터로 전달하여 모바일 사파리/크롬 브라우저 캐시 완벽 우회
+    const cacheBuster = Date.now();
     const [siteSettings, qnaItems, reviewItems] = await Promise.all([
-      client.fetch('*[_type == "siteSettings"][0]'),
-      client.fetch('*[_type == "qnaItem"] | order(order asc, _createdAt asc)'),
-      client.fetch('*[_type == "reviewItem"] | order(date desc, _createdAt desc)'),
+      client.fetch('*[_type == "siteSettings"][0]', { _cb: cacheBuster }),
+      client.fetch('*[_type == "qnaItem"] | order(order asc, _createdAt asc)', { _cb: cacheBuster }),
+      client.fetch('*[_type == "reviewItem"] | order(date desc, _createdAt desc)', { _cb: cacheBuster }),
     ]);
 
     const result: { values?: Record<string, string>; qnaList?: any[]; reviews?: any[]; adminPassword?: string; adminToken?: string } = {};
@@ -382,20 +384,45 @@ export async function fetchSanityData(): Promise<{
       setPermanentToken(siteSettings.adminToken);
     }
 
+    // Q&A 중복 제거 및 복원
     if (Array.isArray(qnaItems) && qnaItems.length > 0) {
-      result.qnaList = qnaItems.map((item: any) => ({
-        q: item.question || item.q || '',
-        a: item.answer || item.a || '',
-      }));
+      const seenQ = new Set<string>();
+      const cleanQna: any[] = [];
+      for (const item of qnaItems) {
+        const qText = (item.question || item.q || '').trim();
+        if (qText && !seenQ.has(qText)) {
+          seenQ.add(qText);
+          cleanQna.push({
+            q: qText,
+            a: item.answer || item.a || '',
+          });
+        }
+      }
+      result.qnaList = cleanQna;
     }
 
+    // 리뷰(수업 소식) 중복 완벽 제거 및 복원
     if (Array.isArray(reviewItems) && reviewItems.length > 0) {
-      result.reviews = reviewItems.map((item: any) => ({
-        id: item.reviewId || item.id || Date.now(),
-        title: item.title || '',
-        date: item.date || new Date().toISOString().slice(0, 10),
-        body: item.body || '',
-      }));
+      const seenIds = new Set<number>();
+      const seenTitles = new Set<string>();
+      const cleanReviews: any[] = [];
+      for (const item of reviewItems) {
+        const rId = Number(item.reviewId || item.id) || 0;
+        const titleKey = `${(item.title || '').trim()}_${(item.date || '').trim()}`;
+        if (rId > 0 && !seenIds.has(rId) && !seenTitles.has(titleKey)) {
+          seenIds.add(rId);
+          seenTitles.add(titleKey);
+          cleanReviews.push({
+            id: rId,
+            title: item.title || '',
+            date: item.date || new Date().toISOString().slice(0, 10),
+            body: item.body || '',
+            isPrivate: Boolean(item.isPrivate),
+            password: item.password || '',
+          });
+        }
+      }
+      result.reviews = cleanReviews;
     }
 
     return result;
@@ -458,48 +485,95 @@ export async function pushDataToSanity(
 
     await client.createOrReplace(doc);
 
-    // 2. qna 저장
-    const existingQna = await client.fetch('*[_type == "qnaItem"]._id');
-    const qnaTx = client.transaction();
-    if (Array.isArray(existingQna)) {
-      for (const id of existingQna) {
-        if (typeof id === 'string') {
-          qnaTx.delete(id);
-        }
+    // 2. QnA 중복 제거 및 고유 결정적 ID(qnaItem_0, qnaItem_1...)로 저장 (중복 생성 원천 차단)
+    const dedupedQna: { q: string; a: string }[] = [];
+    const seenQ = new Set<string>();
+    for (const item of qnaList || []) {
+      const qText = (item.q || item.question || '').trim();
+      if (qText && !seenQ.has(qText)) {
+        seenQ.add(qText);
+        dedupedQna.push({
+          q: qText,
+          a: item.a || item.answer || '',
+        });
       }
     }
-    (qnaList || []).forEach((item, index) => {
-      qnaTx.create({
+
+    const validQnaDocIds = new Set<string>();
+    const qnaTx = client.transaction();
+    dedupedQna.forEach((item, index) => {
+      const docId = `qnaItem_${index}`;
+      validQnaDocIds.add(docId);
+      qnaTx.createOrReplace({
+        _id: docId,
         _type: 'qnaItem',
         order: index,
         question: item.q || '',
         answer: item.a || '',
       });
     });
+
+    // 기존 QnA 문서 중 유효하지 않은 문서나 이전 난수 ID 문서 삭제
+    const existingQna = await client.fetch('*[_type == "qnaItem"]._id', { _cb: Date.now() });
+    if (Array.isArray(existingQna)) {
+      for (const id of existingQna) {
+        if (typeof id === 'string' && !validQnaDocIds.has(id)) {
+          qnaTx.delete(id);
+        }
+      }
+    }
     await qnaTx.commit();
 
-    // 3. reviews 저장
-    const existingReviews = await client.fetch('*[_type == "reviewItem"]._id');
+    // 3. 수업 소식(리뷰) 중복 제거 및 고유 결정적 ID(reviewItem_{id})로 저장 (중복 복사 원천 차단)
+    const dedupedReviews: { id: number; title: string; date: string; body: string; isPrivate?: boolean; password?: string }[] = [];
+    const seenRevIds = new Set<number>();
+    const seenRevTitles = new Set<string>();
+    for (const item of reviews || []) {
+      const rId = Number(item.id || item.reviewId) || 0;
+      const titleKey = `${(item.title || '').trim()}_${(item.date || '').trim()}`;
+      if (rId > 0 && !seenRevIds.has(rId) && !seenRevTitles.has(titleKey)) {
+        seenRevIds.add(rId);
+        seenRevTitles.add(titleKey);
+        dedupedReviews.push({
+          id: rId,
+          title: item.title || '',
+          date: item.date || new Date().toISOString().slice(0, 10),
+          body: item.body || '',
+          isPrivate: Boolean(item.isPrivate),
+          password: item.password || '',
+        });
+      }
+    }
+
+    const validReviewDocIds = new Set<string>();
     const reviewTx = client.transaction();
+    dedupedReviews.forEach((item) => {
+      const docId = `reviewItem_${item.id}`;
+      validReviewDocIds.add(docId);
+      reviewTx.createOrReplace({
+        _id: docId,
+        _type: 'reviewItem',
+        reviewId: Number(item.id),
+        title: item.title || '',
+        date: item.date || new Date().toISOString().slice(0, 10),
+        body: item.body || '',
+        isPrivate: Boolean(item.isPrivate),
+        password: item.password || '',
+      });
+    });
+
+    // 기존 리뷰 문서 중 더 이상 목록에 없거나 이전 난수 ID 문서 삭제
+    const existingReviews = await client.fetch('*[_type == "reviewItem"]._id', { _cb: Date.now() });
     if (Array.isArray(existingReviews)) {
       for (const id of existingReviews) {
-        if (typeof id === 'string') {
+        if (typeof id === 'string' && !validReviewDocIds.has(id)) {
           reviewTx.delete(id);
         }
       }
     }
-    (reviews || []).forEach((item, index) => {
-      reviewTx.create({
-        _type: 'reviewItem',
-        reviewId: Number(item.id) || index + 1,
-        title: item.title || '',
-        date: item.date || new Date().toISOString().slice(0, 10),
-        body: item.body || '',
-      });
-    });
     await reviewTx.commit();
 
-    return { success: true, message: '✓ Sanity DB에 웹사이트 모든 문구와 Q&A, 후기 데이터가 안전하게 저장되었습니다!' };
+    return { success: true, message: '✓ Sanity DB에 웹사이트 모든 문구와 Q&A, 후기 데이터가 중복 없이 안전하게 저장되었습니다!' };
   } catch (error: any) {
     console.error('Sanity 저장 오류:', error);
     const statusCode = error?.statusCode || error?.response?.statusCode;

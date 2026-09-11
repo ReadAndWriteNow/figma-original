@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&family=Noto+Serif+KR:wght@500;600;700;900&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --color-orange-primary: #EA580C;
+  --color-orange-bright: #F97316;
+  --color-orange-deep: #C2410C;
+  --color-orange-light: #FFF7ED;
+  --color-orange-soft: #FFEDD5;
+  --color-ink-dark: #0F172A;
+  --color-ink: #1E293B;
+  --color-muted: #64748B;
+  --font-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Noto Serif KR', Georgia, serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background-color: #FAFAF9;
+  word-break: keep-all;
+}
+
+.font-serif-kr {
+  font-family: 'Noto Serif KR', Georgia, serif;
+}

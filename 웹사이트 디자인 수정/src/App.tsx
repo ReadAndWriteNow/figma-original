@@ -1,42 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  getSanityConfig,
-  saveLocalSanityConfig,
-  cleanSanityConfig,
-  testSanityConnection,
-  fetchSanityData,
-  pushDataToSanity,
-  saveTokenToSanity,
-  getPermanentToken,
-  setPermanentToken,
-  loadLocalData,
-  saveLocalData,
-  LOCAL_STORAGE_SITE_DATA_KEY,
-  LOCAL_STORAGE_QNA_KEY,
-  LOCAL_STORAGE_REVIEWS_KEY,
-  type SanityConfig,
-  type SanityTestResult,
-} from "./lib/sanity";
-
-const DEFAULT_VALUES: Record<string, string> = {
-  "header.title": "한우리 독서토론논술",
-  "header.subtitle": "파주운정 산내푸르지오 독서교실",
-  "intro.quote": "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간",
-  "intro.sub": "스스로 생각의 씨앗을 틔울 수 있도록 돕습니다.",
-  "about.slogan": "생각하는 힘이 아이의 미래를 바꿉니다",
-  "about.name": "원장 이해옥",
-  "about.career": "독서토론논술 교습소 운영 (10년 경력)\n해법·한우리 독서토론교습소 운영\n독서지도사 자격 보유",
-  "about.desc": "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다.",
-  "curriculum.elem_title": "저학년 / 고학년",
-  "curriculum.elem_body": "그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행.",
-  "curriculum.mid_title": "내신 및 심화 논술",
-  "curriculum.mid_body": "비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성.",
-  "info.hours": "평일 14:00 ~ 20:00 (주말 및 공휴일 휴무)",
-  "info.address": "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호",
-  "info.parking": "건물 뒷편 주차장 이용 가능",
-  "contact.desc": "우리 아이에게 딱 맞는 독서 논술 교육, 지금 바로 상담받아보세요!",
-  "contact.kakao": "http://pf.kakao.com/_xxxxxx",
-};
 
 const NAV_ITEMS = [
   { href: "about", label: "교습소 소개" },
@@ -65,172 +27,31 @@ function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
-function KakaoMap({ address }: { address?: string }) {
-  const [loading, setLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const containerId = "daumRoughmapContainer1788803690193";
-
+function MapLoader() {
   useEffect(() => {
-    let isCancelled = false;
-
-    async function initializeRoughMap() {
-      try {
-        const c = window.location.protocol === "https:" ? "https:" : "http:";
-        const a = "2851f17d_1787547759105";
-        const p = "prod";
-
-        (window as any).daum = (window as any).daum || {};
-        (window as any).daum.roughmap = (window as any).daum.roughmap || {
-          phase: p,
-          cdn: a,
-          URL_KEY_DATA_LOAD_PRE: `${c}//t1.kakaocdn.net/roughmap/`,
-          url_protocal: c,
-          url_cdn_domain: "//t1.kakaocdn.net",
-        };
-
-        // roughmapLoader.js는 document.write를 호출하여 비동기 스크립트 실행 환경(Chrome/Vercel 등)에서 차단됨
-        // 따라서 roughmapLander.js를 DOM에 직접 주입하여 차단을 완벽하게 우회
-        if (!(window as any).daum?.roughmap?.Lander) {
-          await new Promise<void>((resolve, reject) => {
-            const landerSrc = `${c}//t1.kakaocdn.net/kakaomapweb/roughmap/place/${p}/${a}/roughmapLander.js`;
-            let script = document.querySelector(`script[src*="roughmapLander.js"]`) as HTMLScriptElement | null;
-            if (!script) {
-              script = document.createElement("script");
-              script.charset = "UTF-8";
-              script.src = landerSrc;
-              script.async = true;
-              script.onload = () => resolve();
-              script.onerror = (e) => reject(e);
-              document.head.appendChild(script);
-            } else {
-              const checkTimer = setInterval(() => {
-                if ((window as any).daum?.roughmap?.Lander) {
-                  clearInterval(checkTimer);
-                  resolve();
-                }
-              }, 100);
-              setTimeout(() => {
-                clearInterval(checkTimer);
-                if ((window as any).daum?.roughmap?.Lander) resolve();
-                else reject(new Error("Timeout loading Kakao Map Lander"));
-              }, 5000);
-            }
-          });
-        }
-
-        if (isCancelled) return;
-
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        // 이미 지도가 렌더링되어 있다면 중복 실행 방지
-        if (container.querySelector(".roughmap_maker_label") || container.querySelector(".roughmap_inner")) {
-          setLoading(false);
-          return;
-        }
-
-        // 이전 잔여 내용 정리
-        container.innerHTML = "";
-
-        // 카카오 공식 약도 Lander 실행
-        new (window as any).daum.roughmap.Lander({
-          timestamp: "1788803690193",
-          key: "2ihvyw7i9ytd",
-          mapWidth: "100%",
-          mapHeight: "350",
-        }).render();
-
-        // 렌더링 완료 감지
-        let pollCount = 0;
-        const pollTimer = setInterval(() => {
-          pollCount++;
-          const el = document.getElementById(containerId);
-          if (el && (el.querySelector(".roughmap_inner") || el.children.length > 0)) {
-            clearInterval(pollTimer);
-            if (!isCancelled) setLoading(false);
-          } else if (pollCount > 35) {
-            clearInterval(pollTimer);
-            if (!isCancelled) setLoading(false);
-          }
-        }, 150);
-
-      } catch (err) {
-        console.error("Kakao roughmap initialization failed:", err);
-        if (!isCancelled) {
-          setLoading(false);
-          setHasError(true);
-        }
-      }
-    }
-
-    const t = setTimeout(() => {
-      initializeRoughMap();
-    }, 50);
-
-    return () => {
-      isCancelled = true;
-      clearTimeout(t);
+    if ((window as any)._daumMapLoaded) return;
+    (window as any)._daumMapLoaded = true;
+    const s = document.createElement("script");
+    s.charset = "UTF-8";
+    s.src = "https://ssl.daumcdn.net/dmaps/map_js_init/roughmapLoader.js";
+    s.onload = () => {
+      new (window as any).daum.roughmap.Lander({
+        timestamp: "1788803690193",
+        key: "2ihvyw7i9ytd",
+        mapWidth: "100%",
+        mapHeight: "350",
+      }).render();
     };
+    document.head.appendChild(s);
   }, []);
-
-  return (
-    <div className="relative w-full rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-[#F8FAFC]">
-      {/* 카카오 지도 본체 컨테이너 */}
-      <div
-        id={containerId}
-        className="root_daum_roughmap root_daum_roughmap_landing w-full min-h-[350px]"
-        style={{ minHeight: "350px", width: "100%" }}
-      />
-
-      {/* 로딩 상태 표시기 */}
-      {loading && !hasError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/90 backdrop-blur-[1px] z-10 pointer-events-none">
-          <div className="w-8 h-8 border-3 border-[#FF7F50] border-t-transparent rounded-full animate-spin mb-2" />
-          <p className="text-xs text-[#6B7280] font-semibold">카카오맵 지도를 불러오는 중입니다...</p>
-        </div>
-      )}
-
-      {/* 로드 실패 시 대체 안내 */}
-      {hasError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-amber-50/80 z-10">
-          <span className="text-3xl mb-2">📍</span>
-          <p className="text-sm font-bold text-[#1E2B3A]">한우리독서토론논술 산내푸르지오 교습소</p>
-          <p className="text-xs text-[#6B7280] mt-1 mb-4">
-            {address || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호"}
-          </p>
-          <a
-            href={`https://map.kakao.com/link/search/${encodeURIComponent(address || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오")}`}
-            target="_blank"
-            rel="noreferrer"
-            className="px-4 py-2 bg-[#FF7F50] text-white text-xs font-bold rounded-xl shadow hover:bg-[#E8623A] transition"
-          >
-            카카오맵에서 위치 확인하기 →
-          </a>
-        </div>
-      )}
-    </div>
-  );
+  return null;
 }
 
 /* ═══════════════════════════════════════
    MOBILE LAYOUT
 ═══════════════════════════════════════ */
-function MobileLayout({
-  onQna,
-  onReview,
-  values,
-  onOpenAdmin,
-}: {
-  onQna: () => void;
-  onReview: () => void;
-  values: Record<string, string>;
-  onOpenAdmin?: () => void;
-}) {
+function MobileLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const careerItems = (values["about.career"] || "독서토론논술 교습소 운영 (10년 경력)\n해법·한우리 독서토론교습소 운영\n독서지도사 자격 보유")
-    .split("\n")
-    .map(s => s.trim())
-    .filter(Boolean);
 
   return (
     <div style={{ fontFamily: "'Noto Sans KR', sans-serif", wordBreak: "keep-all" }}
@@ -244,9 +65,9 @@ function MobileLayout({
               Hanwoori Reading & Discussion
             </p>
             <h1 className="text-2xl font-extrabold leading-tight tracking-tight">
-              {values["header.title"] || "한우리 독서토론논술"}
+              한우리 독서토론논술
             </h1>
-            <p className="text-sm mt-1 text-orange-100">{values["header.subtitle"] || "파주운정 산내푸르지오 독서교실"}</p>
+            <p className="text-sm mt-1 text-orange-100">파주운정 산내푸르지오 독서교실</p>
           </div>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
@@ -288,15 +109,6 @@ function MobileLayout({
             >
               📖 수업 소식
             </button>
-            {onOpenAdmin && (
-              <button
-                onClick={() => { onOpenAdmin(); setMenuOpen(false); }}
-                className="col-span-2 py-2 px-3 rounded-xl text-xs font-semibold bg-black/20 text-orange-100 active:bg-black/35 text-center flex items-center justify-center gap-1.5 mt-1 border border-white/20"
-              >
-                <span>⚙️</span>
-                <span>관리자 모드 접속</span>
-              </button>
-            )}
           </nav>
         )}
       </header>
@@ -304,10 +116,10 @@ function MobileLayout({
       {/* 인트로 띠 */}
       <div className="bg-[#FFF0EA] px-5 py-5 border-b border-orange-100">
         <p className="text-base font-semibold text-[#E8623A] leading-relaxed">
-          "{values["intro.quote"] || "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간"}"
+          "아이의 생각이 깊어지고,<br />읽는 기쁨이 자라나는 따뜻한 공간"
         </p>
         <p className="mt-1.5 text-xs text-[#6B7280] leading-relaxed">
-          {values["intro.sub"] || "스스로 생각의 씨앗을 틔울 수 있도록 돕습니다."}
+          스스로 생각의 씨앗을 틔울 수 있도록 돕습니다.
         </p>
       </div>
 
@@ -325,12 +137,12 @@ function MobileLayout({
 
         <div className="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 border-l-4 border-l-[#FF7F50] hover:-translate-y-1 transition-all duration-300 hover:shadow-md">
           <p className="text-[10px] font-bold tracking-widest text-[#FF7F50] uppercase mb-2">원장 소개</p>
-          <p className="text-base font-bold text-[#1E2B3A] leading-snug mb-3 whitespace-pre-line">
-            "{values["about.slogan"] || "생각하는 힘이 아이의 미래를 바꿉니다"}"
+          <p className="text-base font-bold text-[#1E2B3A] leading-snug mb-3">
+            "생각하는 힘이<br />아이의 미래를 바꿉니다"
           </p>
-          <p className="font-semibold text-sm text-[#1E2B3A] mb-3">{values["about.name"] || "원장 이해옥"}</p>
+          <p className="font-semibold text-sm text-[#1E2B3A] mb-3">원장 이해옥</p>
           <ul className="space-y-2">
-            {careerItems.map((t) => (
+            {["독서토론논술 교습소 운영 (10년 경력)", "해법·한우리 독서토론교습소 운영", "독서지도사 자격 보유"].map((t) => (
               <li key={t} className="flex items-start gap-2 text-sm text-[#6B7280]">
                 <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#FF7F50] mt-1.5" />
                 {t}
@@ -340,8 +152,8 @@ function MobileLayout({
         </div>
 
         <div className="mt-4 bg-[#FDFBF7] border border-[#E6DED0] rounded-2xl p-5">
-          <p className="text-sm text-[#6B7280] leading-relaxed mb-3 whitespace-pre-line">
-            {values["about.desc"] || "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다."}
+          <p className="text-sm text-[#6B7280] leading-relaxed mb-3">
+            단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다.
           </p>
           <p className="text-sm font-bold text-[#E8623A] leading-relaxed">
             평생 자산이 될{" "}
@@ -360,14 +172,14 @@ function MobileLayout({
         <div className="mt-5 space-y-4">
           <MobileCard
             badge="초등부"
-            title={values["curriculum.elem_title"] || "저학년 / 고학년"}
-            body={values["curriculum.elem_body"] || "그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행."}
+            title="저학년 / 고학년"
+            body="그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행."
             detail="소수 정예 최대 6명 그룹 수업"
           />
           <MobileCard
             badge="중등부"
-            title={values["curriculum.mid_title"] || "내신 및 심화 논술"}
-            body={values["curriculum.mid_body"] || "비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성."}
+            title="내신 및 심화 논술"
+            body="비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성."
             detail="내신 성적 향상 집중 지도"
           />
         </div>
@@ -407,31 +219,14 @@ function MobileLayout({
         <MobileSectionTitle>운영 안내 및 오시는 길</MobileSectionTitle>
         <div className="mt-5 bg-white rounded-2xl border border-gray-100 shadow-sm border-l-4 border-l-[#FF7F50] p-5">
           <ul className="space-y-4">
-            <MobileInfoItem icon="🕐" label="운영 시간" value={values["info.hours"] || "평일 14:00 ~ 20:00 (주말·공휴일 휴무)"} />
-            <MobileInfoItem icon="📍" label="주소" value={values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호"} />
-            <MobileInfoItem icon="🚗" label="주차" value={values["info.parking"] || "건물 뒷편 주차장 이용 가능"} />
+            <MobileInfoItem icon="🕐" label="운영 시간" value="평일 14:00 ~ 20:00 (주말·공휴일 휴무)" />
+            <MobileInfoItem icon="📍" label="주소" value="경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호" />
+            <MobileInfoItem icon="🚗" label="주차" value="건물 뒷편 주차장 이용 가능" />
           </ul>
         </div>
-        <div className="mt-4">
-          <KakaoMap address={values["info.address"]} />
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <a
-            href={`https://map.kakao.com/link/search/${encodeURIComponent(values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오")}`}
-            target="_blank"
-            rel="noreferrer"
-            className="py-2.5 px-3 bg-amber-50 active:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition"
-          >
-            <span>🗺️ 카카오맵 크게보기</span>
-          </a>
-          <a
-            href={`https://map.kakao.com/link/to/한우리독서토론논술 산내푸르지오,37.72895,126.73285`}
-            target="_blank"
-            rel="noreferrer"
-            className="py-2.5 px-3 bg-[#1E2B3A] active:bg-[#2C3E50] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition"
-          >
-            <span>🚗 길찾기 바로가기</span>
-          </a>
+        <div className="mt-4 rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+          <div id="daumRoughmapContainer1788803690193" className="root_daum_roughmap root_daum_roughmap_landing w-full" />
+          <MapLoader />
         </div>
       </section>
 
@@ -456,11 +251,11 @@ function MobileLayout({
       {/* 상담 문의 */}
       <section id="contact" className="px-5 py-10 text-center">
         <MobileSectionTitle>상담 문의</MobileSectionTitle>
-        <p className="mt-3 text-sm text-[#6B7280] leading-relaxed whitespace-pre-line">
-          {values["contact.desc"] || "우리 아이에게 딱 맞는 독서 논술 교육,\n지금 바로 상담받아보세요!"}
+        <p className="mt-3 text-sm text-[#6B7280] leading-relaxed">
+          우리 아이에게 딱 맞는 독서 논술 교육,<br />지금 바로 상담받아보세요!
         </p>
         <a
-          href={values["contact.kakao"] || "http://pf.kakao.com/_xxxxxx"}
+          href="http://pf.kakao.com/_xxxxxx"
           target="_blank"
           rel="noreferrer"
           className="mt-6 flex items-center justify-center gap-2 bg-[#FF7F50] active:bg-[#E8623A] text-white font-bold text-base px-8 py-4 rounded-2xl shadow-lg shadow-orange-200"
@@ -471,17 +266,8 @@ function MobileLayout({
       </section>
 
       <footer className="bg-[#1E2B3A] text-[#8A9AB0] text-xs text-center py-6 px-5 leading-relaxed">
-        <p>© 2026 {values["header.title"] || "한우리 독서토론논술"} {values["header.subtitle"] || "파주운정 산내푸르지오독서교실"}</p>
-        <p className="mt-1 text-[#4A5A6A]">{values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호"}</p>
-        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-center">
-          <button
-            onClick={onOpenAdmin}
-            className="text-[11px] text-gray-400 hover:text-orange-300 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 transition"
-          >
-            <span>⚙️</span>
-            <span>관리자 모드</span>
-          </button>
-        </div>
+        <p>© 2026 한우리 독서토론논술 파주운정 산내푸르지오독서교실</p>
+        <p className="mt-1 text-[#4A5A6A]">경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호</p>
       </footer>
     </div>
   );
@@ -528,22 +314,7 @@ function MobileInfoItem({ icon, label, value }: { icon: string; label: string; v
 /* ═══════════════════════════════════════
    PC LAYOUT
 ═══════════════════════════════════════ */
-function PCLayout({
-  onQna,
-  onReview,
-  values,
-  onOpenAdmin,
-}: {
-  onQna: () => void;
-  onReview: () => void;
-  values: Record<string, string>;
-  onOpenAdmin?: () => void;
-}) {
-  const careerItems = (values["about.career"] || "독서토론논술 교습소 운영 (10년 경력)\n해법·한우리 독서토론교습소 운영\n독서지도사 자격 보유")
-    .split("\n")
-    .map(s => s.trim())
-    .filter(Boolean);
-
+function PCLayout({ onQna, onReview }: { onQna: () => void; onReview: () => void }) {
   return (
     <div style={{ fontFamily: "'Noto Sans KR', sans-serif", wordBreak: "keep-all" }}
       className="min-h-screen bg-white text-[#1E2B3A]">
@@ -559,10 +330,8 @@ function PCLayout({
               <p className="text-xs font-medium tracking-widest uppercase text-orange-100 mb-1">
                 Hanwoori Reading & Discussion
               </p>
-              <h1 className="text-5xl font-extrabold leading-tight tracking-tight">
-                {values["header.title"] || "한우리 독서토론논술"}
-              </h1>
-              <p className="text-xl mt-1 text-orange-100">{values["header.subtitle"] || "파주운정 산내푸르지오 독서교실"}</p>
+              <h1 className="text-5xl font-extrabold leading-tight tracking-tight">한우리 독서토론논술</h1>
+              <p className="text-xl mt-1 text-orange-100">파주운정 산내푸르지오 독서교실</p>
             </div>
           </div>
           <nav className="flex gap-2 flex-wrap">
@@ -589,11 +358,9 @@ function PCLayout({
       <div className="bg-[#FFF0EA] border-b border-orange-100">
         <div className="max-w-5xl mx-auto px-10 py-8 text-center">
           <p className="text-2xl font-semibold text-[#E8623A] leading-relaxed">
-            "{values["intro.quote"] || "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간"}"
+            "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간"
           </p>
-          <p className="mt-2 text-sm text-[#6B7280]">
-            {values["intro.sub"] || "단순히 지식을 채우기보다 스스로 생각의 씨앗을 틔울 수 있도록 돕습니다."}
-          </p>
+          <p className="mt-2 text-sm text-[#6B7280]">단순히 지식을 채우기보다 스스로 생각의 씨앗을 틔울 수 있도록 돕습니다.</p>
         </div>
       </div>
 
@@ -603,12 +370,12 @@ function PCLayout({
         <div className="grid grid-cols-2 gap-8 mt-10 items-stretch">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 border-l-4 border-l-[#FF7F50] hover:-translate-y-1 transition-all duration-300 hover:shadow-md">
             <p className="text-xs font-bold tracking-widest text-[#FF7F50] uppercase mb-3">원장 소개</p>
-            <h3 className="text-xl font-bold text-[#1E2B3A] mb-4 leading-snug whitespace-pre-line">
-              "{values["about.slogan"] || "생각하는 힘이 아이의 미래를 바꿉니다"}"
+            <h3 className="text-xl font-bold text-[#1E2B3A] mb-4 leading-snug">
+              "생각하는 힘이<br />아이의 미래를 바꿉니다"
             </h3>
-            <p className="font-semibold text-[#1E2B3A] mb-3">{values["about.name"] || "원장 이해옥"}</p>
+            <p className="font-semibold text-[#1E2B3A] mb-3">원장 이해옥</p>
             <ul className="space-y-2">
-              {careerItems.map((t) => (
+              {["독서토론논술 교습소 운영 (10년 경력)", "해법·한우리 독서토론교습소 운영", "독서지도사 자격 보유"].map((t) => (
                 <li key={t} className="flex items-start gap-2 text-sm text-[#6B7280]">
                   <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#FF7F50] mt-1.5" />
                   {t}
@@ -625,8 +392,9 @@ function PCLayout({
           </div>
         </div>
         <div className="mt-8 bg-[#FDFBF7] border border-[#E6DED0] rounded-2xl p-8 text-center">
-          <p className="text-sm text-[#6B7280] leading-relaxed mb-4 whitespace-pre-line">
-            {values["about.desc"] || "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다.\n책 속에서 길을 찾고, 친구들과 생각을 나누며, 자신의 마음을 글로 당당하게 표현하는 힘을 기릅니다."}
+          <p className="text-sm text-[#6B7280] leading-relaxed mb-4">
+            단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다.<br />
+            책 속에서 길을 찾고, 친구들과 생각을 나누며, 자신의 마음을 글로 당당하게 표현하는 힘을 기릅니다.
           </p>
           <p className="text-lg font-bold text-[#E8623A]">
             평생 자산이 될{" "}
@@ -643,18 +411,12 @@ function PCLayout({
       <section id="curriculum" className="max-w-5xl mx-auto px-10 py-20">
         <PCSectionTitle>커리큘럼 및 수업 방식</PCSectionTitle>
         <div className="grid grid-cols-2 gap-6 mt-10">
-          <PCCard
-            badge="초등부"
-            title={values["curriculum.elem_title"] || "저학년 / 고학년"}
-            body={values["curriculum.elem_body"] || "그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행."}
-            detail="소수 정예 4명 그룹 수업"
-          />
-          <PCCard
-            badge="중등부"
-            title={values["curriculum.mid_title"] || "내신 및 심화 논술"}
-            body={values["curriculum.mid_body"] || "비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성."}
-            detail="내신 성적 향상 집중 지도"
-          />
+          <PCCard badge="초등부" title="저학년 / 고학년"
+            body="그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행."
+            detail="소수 정예 4명 그룹 수업" />
+          <PCCard badge="중등부" title="내신 및 심화 논술"
+            body="비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성."
+            detail="내신 성적 향상 집중 지도" />
         </div>
         <p className="mt-6 text-center text-xs text-[#6B7280]">
           상세한 설명은 <button onClick={onQna} className="text-[#E8623A] underline underline-offset-2 bg-transparent border-none cursor-pointer">자주 묻는 질문</button>을 참고 부탁드립니다.
@@ -692,31 +454,14 @@ function PCLayout({
         <PCSectionTitle>운영 안내 및 오시는 길</PCSectionTitle>
         <div className="mt-10 bg-white rounded-2xl border border-gray-100 shadow-sm border-l-4 border-l-[#FF7F50] p-8">
           <ul className="space-y-4">
-            <PCInfoItem icon="🕐" label="운영 시간" value={values["info.hours"] || "평일 14:00 ~ 20:00 (주말 및 공휴일 휴무)"} />
-            <PCInfoItem icon="📍" label="주소" value={values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호"} />
-            <PCInfoItem icon="🚗" label="주차 정보" value={values["info.parking"] || "건물 뒷편 주차장 이용 가능"} />
+            <PCInfoItem icon="🕐" label="운영 시간" value="평일 14:00 ~ 20:00 (주말 및 공휴일 휴무)" />
+            <PCInfoItem icon="📍" label="주소" value="경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호" />
+            <PCInfoItem icon="🚗" label="주차 정보" value="건물 뒷편 주차장 이용 가능" />
           </ul>
         </div>
-        <div className="mt-6">
-          <KakaoMap address={values["info.address"]} />
-        </div>
-        <div className="mt-4 flex items-center justify-end gap-3">
-          <a
-            href={`https://map.kakao.com/link/search/${encodeURIComponent(values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오")}`}
-            target="_blank"
-            rel="noreferrer"
-            className="py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition"
-          >
-            <span>🗺️ 카카오맵 크게보기</span>
-          </a>
-          <a
-            href={`https://map.kakao.com/link/to/한우리독서토론논술 산내푸르지오,37.72895,126.73285`}
-            target="_blank"
-            rel="noreferrer"
-            className="py-2.5 px-4 bg-[#1E2B3A] hover:bg-[#2C3E50] text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition"
-          >
-            <span>🚗 길찾기 바로가기</span>
-          </a>
+        <div className="mt-6 rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+          <div id="daumRoughmapContainer1788803690193" className="root_daum_roughmap root_daum_roughmap_landing w-full" />
+          <MapLoader />
         </div>
       </section>
 
@@ -743,12 +488,10 @@ function PCLayout({
       {/* 상담 문의 */}
       <section id="contact" className="max-w-5xl mx-auto px-10 py-20 text-center">
         <PCSectionTitle>상담 문의</PCSectionTitle>
-        <p className="mt-4 text-[#6B7280] whitespace-pre-line">
-          {values["contact.desc"] || "우리 아이에게 딱 맞는 독서 논술 교육, 지금 바로 상담받아보세요!"}
-        </p>
+        <p className="mt-4 text-[#6B7280]">우리 아이에게 딱 맞는 독서 논술 교육, 지금 바로 상담받아보세요!</p>
         <div className="mt-10">
           <a
-            href={values["contact.kakao"] || "http://pf.kakao.com/_xxxxxx"}
+            href="http://pf.kakao.com/_xxxxxx"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-3 bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-lg px-12 py-5 rounded-full shadow-lg shadow-orange-200 transition-all hover:-translate-y-1"
@@ -760,17 +503,8 @@ function PCLayout({
       </section>
 
       <footer className="bg-[#1E2B3A] text-[#8A9AB0] text-sm text-center py-8 px-10">
-        <p>© 2026 {values["header.title"] || "한우리 독서토론논술"} {values["header.subtitle"] || "파주운정 산내푸르지오독서교실"}. All rights reserved.</p>
-        <p className="mt-1 text-xs text-[#4A5A6A]">{values["info.address"] || "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호"}</p>
-        <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-center">
-          <button
-            onClick={onOpenAdmin}
-            className="text-xs text-gray-400 hover:text-orange-300 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 transition"
-          >
-            <span>⚙️</span>
-            <span>관리자 모드</span>
-          </button>
-        </div>
+        <p>© 2026 한우리 독서토론논술 파주운정 산내푸르지오독서교실. All rights reserved.</p>
+        <p className="mt-1 text-xs text-[#4A5A6A]">경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호</p>
       </footer>
     </div>
   );
@@ -1043,24 +777,7 @@ function QnaPage({ onBack, items }: { onBack: () => void; items?: QnaItem[] }) {
 /* ═══════════════════════════════════════
    관리자 모달
 ═══════════════════════════════════════ */
-const DEFAULT_ADMIN_PW = "hanwoori2024";
-const LOCAL_STORAGE_ADMIN_PW_KEY = "hanwoori_admin_pw";
-
-function getStoredAdminPassword(): string {
-  try {
-    return localStorage.getItem(LOCAL_STORAGE_ADMIN_PW_KEY) || DEFAULT_ADMIN_PW;
-  } catch {
-    return DEFAULT_ADMIN_PW;
-  }
-}
-
-function saveStoredAdminPassword(newPw: string): void {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_ADMIN_PW_KEY, newPw);
-  } catch (e) {
-    console.error("Failed to save admin password", e);
-  }
-}
+const ADMIN_PW = "hanwoori2024";
 
 const SECTIONS = [
   {
@@ -1715,13 +1432,7 @@ function QnaSectionEditor({ qnaList, onChange }: {
   );
 }
 
-const NAV_SIDEBAR = [
-  ...SECTIONS.map(s => ({ id: s.id, label: s.label })),
-  { id: "qna", label: "자주 묻는 질문" },
-  { id: "reviews", label: "수업 소식" },
-  { id: "sanity", label: "Sanity DB 연동" },
-  { id: "password", label: "관리자 비밀번호" },
-];
+const NAV_SIDEBAR = [...SECTIONS.map(s => ({ id: s.id, label: s.label })), { id: "qna", label: "자주 묻는 질문" }, { id: "reviews", label: "수업 소식" }];
 
 /* ─── 수업 소식 편집기 ─── */
 function ReviewSectionEditor({ reviews, onChange }: { reviews: Review[]; onChange: (list: Review[]) => void }) {
@@ -1807,312 +1518,63 @@ function ReviewSectionEditor({ reviews, onChange }: { reviews: Review[]; onChang
   );
 }
 
-function AdminModal({
-  onClose,
-  qnaList,
-  onQnaChange,
-  reviews,
-  onReviewsChange,
-  values,
-  onValuesChange,
-}: {
+function AdminModal({ onClose, qnaList, onQnaChange, reviews, onReviewsChange }: {
   onClose: () => void;
   qnaList: QnaItem[];
   onQnaChange: (list: QnaItem[]) => void;
   reviews: Review[];
   onReviewsChange: (list: Review[]) => void;
-  values: Record<string, string>;
-  onValuesChange: (vals: Record<string, string>) => void;
 }) {
   const [step, setStep] = useState<"pw" | "edit">("pw");
   const [pw, setPw] = useState("");
   const [pwError, setPwError] = useState(false);
   const [activeSection, setActiveSection] = useState(NAV_SIDEBAR[0].id);
-  const [localValues, setLocalValues] = useState<Record<string, string>>(values);
-  const [saved, setSaved] = useState(false);
-  const [saveStatusMsg, setSaveStatusMsg] = useState("");
-
-  // 관리자 비밀번호 변경 상태
-  const [currentStoredPw, setCurrentStoredPw] = useState(getStoredAdminPassword());
-  const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirmPw: "" });
-  const [pwMsg, setPwMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  // Sanity 연동 관련 상태
-  const [sanityConfig, setSanityConfig] = useState<SanityConfig>(() => {
-    const cfg = getSanityConfig();
-    return (
-      cfg || {
-        projectId: "8vs8axo9",
-        dataset: "production",
-        apiVersion: "2024-03-01",
-        token: "",
-      }
-    );
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    SECTIONS.forEach(s => s.fields.forEach(f => { init[`${s.id}.${f.key}`] = f.defaultValue; }));
+    return init;
   });
-  const [savedToken, setSavedToken] = useState<string>(() => getPermanentToken() || getSanityConfig()?.token || "");
-  const [tokenInput, setTokenInput] = useState<string>("");
-  const [isEditingToken, setIsEditingToken] = useState<boolean>(false);
-
-  useEffect(() => {
-    const t = getPermanentToken() || getSanityConfig()?.token || "";
-    if (t && !savedToken) {
-      setSavedToken(t);
-    }
-  }, [step]);
-  const [sanityLoading, setSanityLoading] = useState(false);
-  const [sanityMsg, setSanityMsg] = useState<{
-    type: "success" | "error" | "info";
-    text: string;
-    errorType?: "cors" | "notFound" | "unauthorized" | "insufficient_permissions" | "invalidId" | "unknown";
-    origin?: string;
-    manageUrl?: string;
-    cleanProjectId?: string;
-  } | null>(null);
-  const [copiedOrigin, setCopiedOrigin] = useState(false);
-  const [showToken, setShowToken] = useState(false);
-
-  function copyCurrentOrigin() {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    if (origin && navigator.clipboard) {
-      navigator.clipboard.writeText(origin);
-      setCopiedOrigin(true);
-      setTimeout(() => setCopiedOrigin(false), 2000);
-    }
-  }
+  const [saved, setSaved] = useState(false);
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (pw === currentStoredPw) {
-      setStep("edit");
-      setPwError(false);
-    } else {
-      setPwError(true);
-    }
+    if (pw === ADMIN_PW) { setStep("edit"); setPwError(false); }
+    else { setPwError(true); }
   }
 
-  function handleChangePassword(e: React.FormEvent) {
-    e.preventDefault();
-    setPwMsg(null);
-
-    if (pwForm.current !== currentStoredPw) {
-      setPwMsg({ type: "error", text: "현재 비밀번호가 일치하지 않습니다." });
-      return;
-    }
-    if (!pwForm.newPw || pwForm.newPw.length < 4) {
-      setPwMsg({ type: "error", text: "새 비밀번호는 4자리 이상이어야 합니다." });
-      return;
-    }
-    if (pwForm.newPw !== pwForm.confirmPw) {
-      setPwMsg({ type: "error", text: "새 비밀번호와 확인 비밀번호가 일치하지 않습니다." });
-      return;
-    }
-
-    saveStoredAdminPassword(pwForm.newPw);
-    setCurrentStoredPw(pwForm.newPw);
-    setPwForm({ current: "", newPw: "", confirmPw: "" });
-    setPwMsg({ type: "success", text: "✓ 관리자 비밀번호가 성공적으로 변경되었습니다! 다음 로그인부터 적용됩니다." });
-
-    // Sanity DB에도 새 비밀번호 실시간 동기화
-    const cfg = getSanityConfig();
-    const effectiveToken = savedToken || cfg?.token || getPermanentToken();
-    if (cfg?.projectId && effectiveToken) {
-      pushDataToSanity(localValues, qnaList, reviews, cleanSanityConfig({ ...cfg, token: effectiveToken }), pwForm.newPw).catch(err => {
-        console.warn("비밀번호 Sanity 동기화 대기:", err);
-      });
-    }
-  }
-
-  function handleResetPassword() {
-    if (window.confirm("비밀번호를 기본값(hanwoori2024)으로 초기화하시겠습니까?")) {
-      saveStoredAdminPassword(DEFAULT_ADMIN_PW);
-      setCurrentStoredPw(DEFAULT_ADMIN_PW);
-      setPwForm({ current: "", newPw: "", confirmPw: "" });
-      setPwMsg({ type: "success", text: "✓ 비밀번호가 기본값(hanwoori2024)으로 초기화되었습니다." });
-    }
-  }
-
-  async function handleSave() {
-    // 1. 화면 즉시 반영
-    onValuesChange(localValues);
-    // 2. 브라우저 localStorage 영구 저장
-    saveLocalData(LOCAL_STORAGE_SITE_DATA_KEY, localValues);
-    saveLocalData(LOCAL_STORAGE_QNA_KEY, qnaList);
-    saveLocalData(LOCAL_STORAGE_REVIEWS_KEY, reviews);
-
-    // 3. Sanity 토큰이 연결되어 있다면 Sanity DB에도 자동 동기화
-    const cfg = getSanityConfig();
-    const effectiveToken = savedToken || cfg?.token || getPermanentToken();
-    const pid = cfg?.projectId || "8vs8axo9";
-    if (pid && effectiveToken) {
-      setSaveStatusMsg("웹사이트 및 Sanity DB에 자동 동기화 중...");
-      try {
-        const fullConfig = cleanSanityConfig({ ...cfg, projectId: pid, token: effectiveToken });
-        const res = await pushDataToSanity(localValues, qnaList, reviews, fullConfig, currentStoredPw);
-        if (res.success) {
-          setSaveStatusMsg("✓ 웹사이트 & Sanity DB에 실시간 저장 완료!");
-        } else {
-          setSaveStatusMsg(`✓ 웹사이트 저장 완료 (Sanity 동기화: ${res.message})`);
-        }
-      } catch (err: any) {
-        setSaveStatusMsg("✓ 웹사이트 저장 완료");
-      }
-    } else {
-      setSaveStatusMsg("✓ 웹사이트에 즉시 저장 및 반영되었습니다!");
-    }
-
+  function handleSave() {
+    console.log("저장할 데이터:", { values, qnaList });
     setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      setSaveStatusMsg("");
-    }, 3500);
-  }
-
-  async function handleTestSanity() {
-    const activeToken = tokenInput.trim() || savedToken || getPermanentToken();
-    const cleaned = cleanSanityConfig({
-      ...sanityConfig,
-      projectId: sanityConfig.projectId || "8vs8axo9",
-      token: activeToken,
-    });
-
-    if (activeToken) {
-      setPermanentToken(activeToken);
-      setSavedToken(activeToken);
-    }
-    setSanityConfig(cleaned);
-    setSanityLoading(true);
-    setSanityMsg({ type: "info", text: "Sanity DB 연결 상태와 CORS 설정을 진단 중입니다..." });
-    saveLocalSanityConfig(cleaned);
-
-    const res = await testSanityConnection(cleaned);
-    setSanityLoading(false);
-    if (res.success) {
-      setSanityMsg({
-        type: "success",
-        text: res.message,
-        cleanProjectId: res.cleanProjectId,
-      });
-      setIsEditingToken(false);
-    } else {
-      setSanityMsg({
-        type: "error",
-        text: res.message,
-        errorType: res.errorType,
-        origin: res.currentOrigin,
-        manageUrl: res.manageUrl,
-        cleanProjectId: res.cleanProjectId || cleaned.projectId,
-      });
-    }
-  }
-
-  async function handlePushToSanity() {
-    const activeToken = tokenInput.trim() || savedToken || getPermanentToken();
-    const cleaned = cleanSanityConfig({
-      ...sanityConfig,
-      projectId: sanityConfig.projectId || "8vs8axo9",
-      token: activeToken,
-    });
-    if (!cleaned.projectId) {
-      setSanityMsg({ type: "error", text: "먼저 Project ID를 입력해 주세요.", errorType: "invalidId" });
-      return;
-    }
-    if (!activeToken?.trim()) {
-      setSanityMsg({
-        type: "error",
-        text: "Sanity로 데이터를 전송하려면 Write 권한이 있는 API Token이 필요합니다 (Sanity 대시보드 API -> Tokens 발급).",
-        errorType: "unauthorized",
-        manageUrl: `https://www.sanity.io/manage/project/${cleaned.projectId}/api`,
-      });
-      return;
-    }
-
-    setPermanentToken(activeToken);
-    setSavedToken(activeToken);
-    setIsEditingToken(false);
-
-    setSanityLoading(true);
-    setSanityMsg({ type: "info", text: "Sanity DB로 웹사이트 전체 데이터를 업로드 중입니다..." });
-    saveLocalSanityConfig(cleaned);
-
-    const res = await pushDataToSanity(localValues, qnaList, reviews, cleaned, currentStoredPw);
-    setSanityLoading(false);
-    if (res.success) {
-      setSanityMsg({ type: "success", text: res.message });
-    } else {
-      const isCors = res.errorType === "cors" || res.message?.includes("Failed to fetch") || res.message?.includes("NetworkError");
-      setSanityMsg({
-        type: "error",
-        text: res.message,
-        errorType: (res.errorType as any) || (isCors ? "cors" : "unknown"),
-        origin: typeof window !== "undefined" ? window.location.origin : "",
-        manageUrl: `https://www.sanity.io/manage/project/${cleaned.projectId}/api`,
-        cleanProjectId: cleaned.projectId,
-      });
-    }
-  }
-
-  async function handlePullFromSanity() {
-    setSanityLoading(true);
-    setSanityMsg({ type: "info", text: "Sanity DB에서 최신 데이터를 가져오는 중입니다..." });
-    const data = await fetchSanityData();
-    setSanityLoading(false);
-    if (data) {
-      if (data.adminPassword) {
-        saveStoredAdminPassword(data.adminPassword);
-        setCurrentStoredPw(data.adminPassword);
-      }
-      if (data.values) {
-        setLocalValues(prev => ({ ...prev, ...data.values }));
-        onValuesChange({ ...localValues, ...data.values });
-        saveLocalData(LOCAL_STORAGE_SITE_DATA_KEY, { ...localValues, ...data.values });
-      }
-      if (data.qnaList && data.qnaList.length > 0) {
-        onQnaChange(data.qnaList);
-        saveLocalData(LOCAL_STORAGE_QNA_KEY, data.qnaList);
-      }
-      if (data.reviews && data.reviews.length > 0) {
-        onReviewsChange(data.reviews);
-        saveLocalData(LOCAL_STORAGE_REVIEWS_KEY, data.reviews);
-      }
-      setSanityMsg({ type: "success", text: "✓ Sanity DB에서 최신 데이터를 성공적으로 불러와 웹사이트에 반영했습니다!" });
-    } else {
-      setSanityMsg({ type: "error", text: "Sanity에서 데이터를 가져오지 못했습니다. Project ID 및 데이터셋을 확인하세요." });
-    }
+    setTimeout(() => setSaved(false), 2500);
   }
 
   const currentSection = SECTIONS.find(s => s.id === activeSection);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,.6)", backdropFilter: "blur(4px)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
 
-      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-2xl h-[92vh] sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
 
         {/* 헤더 */}
-        <div className="bg-[#FF7F50] px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between shrink-0">
+        <div className="bg-[#FF7F50] px-6 py-5 flex items-center justify-between shrink-0">
           <div>
-            <p className="text-[11px] font-semibold text-orange-100 uppercase tracking-widest">Admin Panel</p>
-            <h2 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
-              {step === "pw" ? "관리자 로그인" : "웹사이트 실시간 편집 & DB 관리"}
+            <p className="text-xs font-semibold text-orange-100 uppercase tracking-widest">Admin</p>
+            <h2 className="text-lg font-extrabold text-white tracking-tight">
+              {step === "pw" ? "관리자 로그인" : "웹사이트 편집"}
             </h2>
           </div>
           <button onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-sm transition cursor-pointer">
+            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-sm transition">
             ✕
           </button>
         </div>
 
         {/* 비밀번호 */}
         {step === "pw" && (
-          <form onSubmit={handleLogin} className="p-6 sm:p-8 flex flex-col gap-4">
-            <p className="text-sm text-[#6B7280]">
-              관리자 비밀번호를 입력해 주세요. {currentStoredPw === DEFAULT_ADMIN_PW ? (
-                <span>(초기 기본값: <span className="font-mono text-[#FF7F50] font-semibold">hanwoori2024</span>)</span>
-              ) : (
-                <span className="text-xs text-orange-600 block mt-1">* 사용자가 설정한 비밀번호가 적용 중입니다.</span>
-              )}
-            </p>
+          <form onSubmit={handleLogin} className="p-8 flex flex-col gap-4">
+            <p className="text-sm text-[#6B7280]">관리자 비밀번호를 입력해 주세요.</p>
             <input
               type="password"
               value={pw}
@@ -2124,7 +1586,7 @@ function AdminModal({
             />
             {pwError && <p className="text-xs text-red-500">비밀번호가 올바르지 않습니다.</p>}
             <button type="submit"
-              className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold py-3 rounded-xl transition cursor-pointer">
+              className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold py-3 rounded-xl transition">
               로그인
             </button>
           </form>
@@ -2132,503 +1594,44 @@ function AdminModal({
 
         {/* 편집 */}
         {step === "edit" && (
-          <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
-            {/* 모바일 상단 탭 (가로 스크롤) */}
-            <div className="md:hidden flex overflow-x-auto border-b border-gray-200 bg-[#f9fafb] p-2 gap-1.5 shrink-0 scrollbar-none">
-              {NAV_SIDEBAR.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => setActiveSection(s.id)}
-                  className={`whitespace-nowrap px-3.5 py-2 text-xs font-bold rounded-xl transition shrink-0 cursor-pointer ${
-                    activeSection === s.id
-                      ? "bg-[#FF7F50] text-white shadow-xs"
-                      : "bg-white text-[#6B7280] border border-gray-200 active:bg-gray-100"
-                  }`}
-                >
-                  {s.id === "sanity" ? "⚡ " + s.label : s.label}
-                </button>
-              ))}
-            </div>
-
-            {/* 데스크톱 세로 사이드바 */}
-            <div className="hidden md:block w-36 shrink-0 border-r border-gray-100 bg-[#f9fafb] py-4 overflow-y-auto">
+          <div className="flex flex-1 overflow-hidden min-h-0">
+            {/* 사이드바 */}
+            <div className="w-36 shrink-0 border-r border-gray-100 bg-[#f9fafb] py-4 overflow-y-auto">
               {NAV_SIDEBAR.map(s => (
                 <button key={s.id} onClick={() => setActiveSection(s.id)}
-                  className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition cursor-pointer
+                  className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition
                     ${activeSection === s.id
                       ? "bg-[#FFF0EA] text-[#E8623A] border-r-2 border-[#FF7F50]"
                       : "text-[#6B7280] hover:bg-gray-100"}`}>
-                  {s.id === "sanity" ? "⚡ " + s.label : s.label}
+                  {s.label}
                 </button>
               ))}
             </div>
 
-            {/* 폼 영역 */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-5">
+            {/* 폼 */}
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
               {activeSection === "qna" ? (
                 <QnaSectionEditor qnaList={qnaList} onChange={onQnaChange} />
               ) : activeSection === "reviews" ? (
                 <ReviewSectionEditor reviews={reviews} onChange={onReviewsChange} />
-              ) : activeSection === "sanity" ? (
-                /* ─── Sanity DB 연동 설정 탭 ─── */
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <h3 className="text-sm font-extrabold text-[#1E2B3A] flex items-center gap-2">
-                      <span>⚡ Sanity CMS 데이터베이스 연동</span>
-                    </h3>
-                    <p className="text-xs text-[#6B7280] mt-1 leading-relaxed">
-                      수정한 내용이 Sanity 클라우드 DB에 영구 보존되어 모바일, PC, 모든 방문자에게 실시간 노출됩니다.
-                    </p>
-                  </div>
-
-                  {/* 1단계 필수 설정: CORS 도메인 등록 가이드 */}
-                  <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 space-y-2.5">
-                    <div className="flex items-center justify-between font-bold text-amber-800">
-                      <span className="flex items-center gap-1.5">
-                        <span className="text-base">⚠️</span>
-                        <span>[필수 1단계] Sanity에 현재 도메인(CORS) 등록</span>
-                      </span>
-                      {cleanSanityConfig(sanityConfig).projectId && (
-                        <a
-                          href={`https://www.sanity.io/manage/project/${cleanSanityConfig(sanityConfig).projectId}/api`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[11px] underline text-[#FF7F50] hover:text-[#E8623A] font-bold"
-                        >
-                          Sanity CORS 설정 열기 ↗
-                        </a>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-amber-800/90 leading-relaxed">
-                      Sanity 대시보드에 <strong>현재 사이트 주소</strong>가 등록되어 있지 않으면 브라우저 보안으로 인해 연결이 차단됩니다.
-                    </p>
-                    <div className="bg-white/90 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
-                      <div className="truncate">
-                        <span className="text-[10px] text-[#888] block font-medium">현재 접속 주소:</span>
-                        <code className="text-xs font-mono font-bold text-[#1E2B3A] select-all">
-                          {typeof window !== "undefined" ? window.location.origin : ""}
-                        </code>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={copyCurrentOrigin}
-                        className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-xs cursor-pointer"
-                      >
-                        {copiedOrigin ? "✓ 복사됨!" : "주소 복사"}
-                      </button>
-                    </div>
-                    <div className="text-[11px] text-amber-900/90 space-y-0.5 pt-0.5">
-                      <p className="font-bold">👉 30초 설정 방법:</p>
-                      <p>1. Sanity 대시보드 &gt; <strong>API &gt; CORS Origins</strong>에서 <strong>[+ Add CORS origin]</strong> 클릭</p>
-                      <p>2. 위 복사한 주소(또는 Vercel 배포 주소 <code>https://*.vercel.app</code>) 입력</p>
-                      <p>3. <strong className="text-amber-950 underline">"Allow credentials"</strong> 체크박스에 꼭 체크한 후 <strong>Save</strong> 클릭!</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-xs font-semibold text-[#6B7280]">
-                          Sanity Project ID
-                        </label>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                          ✓ 기본 내장 연결됨 (8vs8axo9)
-                        </span>
-                      </div>
-                      <input
-                        type="text"
-                        value={sanityConfig.projectId || "8vs8axo9"}
-                        onChange={e => {
-                          let val = e.target.value;
-                          if (val.includes('/project/')) {
-                            val = val.split('/project/')[1]?.split('/')[0]?.split('?')[0] || val;
-                          } else if (val.includes('/projects/')) {
-                            val = val.split('/projects/')[1]?.split('/')[0]?.split('?')[0] || val;
-                          } else if (val.includes('.api.sanity.io')) {
-                            val = val.replace(/^https?:\/\//, '').split('.api.sanity.io')[0] || val;
-                          }
-                          setSanityConfig(c => ({ ...c, projectId: val.trim() }));
-                        }}
-                        placeholder="8vs8axo9"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#FF7F50] transition font-mono bg-gray-50/70 text-[#1E2B3A] font-bold"
-                      />
-                    </div>
-
-                    {/* 토큰 영구 저장 카드 */}
-                    {savedToken && !isEditingToken ? (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2.5 text-emerald-950">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shrink-0">✓</span>
-                            <span className="font-extrabold text-xs text-emerald-900">클라우드 토큰(Token) 고정 완료</span>
-                          </div>
-                          <span className="text-[10px] bg-emerald-200/80 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                            PC · 모바일 · 전 주소 통일 고정
-                          </span>
-                        </div>
-                        <p className="text-[11.5px] text-emerald-800 leading-relaxed">
-                          토큰이 클라우드에 안전하게 고정되었습니다. 이제 <strong>스마트폰이든, 다른 PC든, 어떤 도메인 주소에서 접속하든 토큰을 고칠 필요가 전혀 없으며</strong>, 관리자 비밀번호만 치면 어디서나 자유롭게 수정 및 저장할 수 있습니다.
-                        </p>
-                        <div className="pt-1.5 flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setTokenInput(savedToken);
-                              setIsEditingToken(true);
-                            }}
-                            className="bg-white border border-emerald-300 hover:bg-emerald-100/50 text-emerald-800 font-medium text-xs px-3 py-2 rounded-xl transition cursor-pointer"
-                          >
-                            토큰 변경
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (window.confirm("저장된 토큰을 완전히 삭제하시겠습니까?")) {
-                                setPermanentToken("");
-                                setSavedToken("");
-                                setSanityConfig(c => ({ ...c, token: "" }));
-                                setIsEditingToken(true);
-                              }
-                            }}
-                            className="text-[11px] text-gray-500 hover:text-red-500 underline ml-1"
-                          >
-                            토큰 삭제
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-orange-50/70 border border-orange-200 rounded-2xl p-4 space-y-3">
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <label className="block text-xs font-bold text-[#1E2B3A]">
-                              API Token (Sanity Editor 권한 토큰) <span className="text-[#FF7F50]">*</span>
-                            </label>
-                            <a
-                              href={`https://www.sanity.io/manage/project/${cleanSanityConfig(sanityConfig).projectId || "8vs8axo9"}/api#tokens`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[11px] underline text-[#FF7F50] hover:text-[#E8623A] font-bold"
-                            >
-                              Sanity Token 발급 페이지 ↗
-                            </a>
-                          </div>
-                          <p className="text-[11px] text-[#6B7280] leading-relaxed mb-2">
-                            PC에서 딱 <strong>한 번만</strong> 입력하시면 <strong>모바일, 스마트폰, 모든 주소에 자동 통일 고정</strong>되어 다시 입력할 필요가 없습니다.
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <input
-                              type={showToken ? "text" : "password"}
-                              value={tokenInput}
-                              onChange={e => setTokenInput(e.target.value.trim())}
-                              placeholder="sk... 로 시작하는 토큰을 붙여넣으세요"
-                              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 pr-14 text-xs outline-none focus:border-[#FF7F50] transition font-mono bg-white"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowToken(!showToken)}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-500 hover:text-[#1E2B3A] px-1.5 py-0.5 bg-gray-100 rounded cursor-pointer"
-                            >
-                              {showToken ? "숨김" : "보기"}
-                            </button>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!tokenInput.trim()) {
-                                alert("토큰을 입력해 주세요.");
-                                return;
-                              }
-                              const cleanToken = tokenInput.trim();
-                              setPermanentToken(cleanToken);
-                              setSavedToken(cleanToken);
-                              setSanityConfig(c => ({ ...c, token: cleanToken }));
-                              saveLocalSanityConfig({ ...sanityConfig, token: cleanToken });
-                              setIsEditingToken(false);
-                              setSanityLoading(true);
-                              const syncRes = await saveTokenToSanity(cleanToken);
-                              setSanityLoading(false);
-                              if (syncRes.success) {
-                                alert("✓ 토큰이 클라우드 DB에 영구 등록되었습니다!\n\n이제 PC뿐만 아니라 모바일, 스마트폰, 새 도메인 주소 등 모든 기기에서 토큰을 입력할 필요가 없으며, 비밀번호만 입력하면 즉시 수정 및 저장됩니다.");
-                              } else {
-                                alert("✓ 토큰이 저장되었습니다. (CORS 허용 후 모든 기기에 자동 연동됩니다)");
-                              }
-                            }}
-                            className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer shrink-0"
-                          >
-                            토큰 등록 (전 기기 자동 고정)
-                          </button>
-                        </div>
-                        <div className="bg-white/80 border border-orange-200/60 rounded-xl p-2.5 text-[11px] text-[#8A5030] space-y-0.5">
-                          <p className="font-bold text-[#E8623A]">💡 API Token 발급 방법 (1분 완료):</p>
-                          <p>1. Sanity 대시보드 &gt; <strong>API &gt; Tokens</strong>에서 <strong>[+ Add API token]</strong> 클릭</p>
-                          <p>2. Permissions에서 반드시 <strong className="text-red-700 underline font-extrabold">[Editor]</strong> 선택 후 Save!</p>
-                          <p>3. 생성된 <code>sk...</code> 토큰을 여기에 붙여넣고 [토큰 등록]을 누르면 PC와 모바일 모두 끝!</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {sanityMsg && (
-                    <div className={`p-3.5 rounded-2xl text-xs font-medium space-y-2 ${
-                      sanityMsg.type === "success"
-                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                        : sanityMsg.type === "error"
-                          ? "bg-red-50 text-red-800 border border-red-200"
-                          : "bg-blue-50 text-blue-800 border border-blue-200"
-                    }`}>
-                      <div className="font-bold flex items-start gap-1.5">
-                        <span className="text-sm shrink-0">{sanityMsg.type === "success" ? "✓" : sanityMsg.type === "error" ? "✕" : "ℹ"}</span>
-                        <span className="leading-snug">{sanityMsg.text}</span>
-                      </div>
-
-                      {(sanityMsg.errorType === "unauthorized" || sanityMsg.errorType === "insufficient_permissions") && (
-                        <div className="bg-white/95 border border-red-200 rounded-xl p-3 space-y-2 text-red-900 mt-2">
-                          <p className="font-bold text-xs text-red-700">🚨 해결 방법 (Token 권한 설정):</p>
-                          <p className="text-[11px] leading-relaxed">
-                            {sanityMsg.errorType === "insufficient_permissions"
-                              ? "현재 입력된 토큰이 'Viewer (읽기 전용)' 권한이라 업로드가 거부되었습니다. 'Editor' 권한의 토큰이 필요합니다."
-                              : "API Token이 입력되지 않았거나 만료되었습니다. Sanity 대시보드에서 Editor 권한의 Token을 발급받아 붙여넣어 주세요."}
-                          </p>
-                          {cleanSanityConfig(sanityConfig).projectId && (
-                            <div className="pt-1">
-                              <a
-                                href={`https://www.sanity.io/manage/project/${cleanSanityConfig(sanityConfig).projectId}/api#tokens`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1 cursor-pointer"
-                              >
-                                Sanity API Tokens 페이지 바로가기 ↗
-                              </a>
-                            </div>
-                          )}
-                          <div className="text-[11px] text-red-800 space-y-0.5 pt-1">
-                            <p>1. 위 링크로 이동 후 <strong>[+ Add API token]</strong> 클릭</p>
-                            <p>2. Permissions에서 <strong className="underline font-bold">"Editor"</strong> 선택 후 Save</p>
-                            <p>3. 생성된 <code>sk...</code> 토큰을 복사하여 위 입력칸에 붙여넣고 다시 업로드 클릭!</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {sanityMsg.errorType === "cors" && (
-                        <div className="bg-white/95 border border-red-200 rounded-xl p-3 space-y-2 text-red-900 mt-2">
-                          <p className="font-bold text-xs text-red-700">🚨 해결 방법 (CORS 등록 필요):</p>
-                          <p className="text-[11px] leading-relaxed">
-                            현재 사이트 주소(<strong>{sanityMsg.origin || (typeof window !== "undefined" ? window.location.origin : "")}</strong>)가 Sanity에 등록되어 있지 않아 브라우저에서 차단되었습니다.
-                          </p>
-                          <div className="flex flex-wrap items-center gap-2 pt-1">
-                            <button
-                              type="button"
-                              onClick={copyCurrentOrigin}
-                              className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer"
-                            >
-                              {copiedOrigin ? "✓ 주소 복사 완료!" : "현재 사이트 주소 복사"}
-                            </button>
-                            {sanityMsg.manageUrl && (
-                              <a
-                                href={sanityMsg.manageUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="bg-[#1E2B3A] hover:bg-[#2C3E50] text-white text-xs font-bold px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1"
-                              >
-                                Sanity API 설정 바로가기 ↗
-                              </a>
-                            )}
-                          </div>
-                          <p className="text-[10.5px] text-red-700 pt-1">
-                            * Sanity 콘솔에서 [+ Add CORS origin] 클릭 후 주소를 붙여넣고 <strong className="underline">"Allow credentials"</strong>에 반드시 체크한 뒤 저장하세요!
-                          </p>
-                        </div>
-                      )}
-
-                      {sanityMsg.errorType === "notFound" && (
-                        <div className="bg-white/95 border border-red-200 rounded-xl p-3 space-y-1.5 text-red-900 mt-2">
-                          <p className="font-bold text-xs text-red-700">💡 Project ID 확인 가이드:</p>
-                          <p className="text-[11px]">
-                            Sanity 대시보드(sanity.io/manage) 첫 화면에서 프로젝트를 선택했을 때 상단에 표시되는 8~10자리 영숫자 ID(예: x9q8w2y1)를 입력해야 합니다.
-                          </p>
-                          <a
-                            href="https://www.sanity.io/manage"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs text-[#FF7F50] hover:underline font-bold inline-block"
-                          >
-                            Sanity 프로젝트 관리 페이지 열기 ↗
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
-                    <button
-                      onClick={handleTestSanity}
-                      disabled={sanityLoading}
-                      className="bg-[#1E2B3A] hover:bg-[#2C3E50] text-white font-bold text-xs py-2.5 px-4 rounded-xl transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {sanityLoading && (
-                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      )}
-                      <span>{sanityLoading ? "연결 상태 정밀 진단 중..." : "✓ 설정 저장 및 연결 테스트"}</span>
-                    </button>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={handlePushToSanity}
-                        disabled={sanityLoading}
-                        className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-xs py-2.5 px-3 rounded-xl transition cursor-pointer disabled:opacity-50 text-center"
-                      >
-                        🚀 현재 데이터를 Sanity로 업로드
-                      </button>
-                      <button
-                        onClick={handlePullFromSanity}
-                        disabled={sanityLoading}
-                        className="border border-gray-200 hover:bg-gray-50 text-[#1E2B3A] font-bold text-xs py-2.5 px-3 rounded-xl transition cursor-pointer disabled:opacity-50 text-center"
-                      >
-                        📥 Sanity에서 최신 데이터 가져오기
-                      </button>
-                    </div>
-
-                    {/* 카카오톡 및 모바일 기기 즉시 동기화 링크 복사 */}
-                    {cleanSanityConfig(sanityConfig).projectId && (
-                      <div className="bg-[#F0FDF4] border border-[#86EFAC] rounded-2xl p-3.5 space-y-2 text-[#166534] mt-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-xs flex items-center gap-1.5">
-                            <span>📱</span> 카카오톡 / 스마트폰에서 수정 데이터 바로 뜨게 하기
-                          </span>
-                          <span className="text-[10px] bg-[#DCFCE7] text-[#15803D] font-bold px-2 py-0.5 rounded-full">
-                            즉시 해결
-                          </span>
-                        </div>
-                        <p className="text-[11px] leading-relaxed text-[#14532D]">
-                          스마트폰은 새 기기이므로 Sanity 연결 정보가 아직 없습니다. 아래 <strong>[동기화 링크 복사]</strong>를 눌러 카톡으로 보내서 열면, 스마트폰에서도 Sanity가 자동 연결되어 방금 수정한 글과 비밀번호가 바로 반영됩니다!
-                        </p>
-                        <div className="pt-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const pid = cleanSanityConfig(sanityConfig).projectId;
-                              const shareUrl = `${window.location.origin}${window.location.pathname}?sanity=${pid}`;
-                              if (navigator.clipboard) {
-                                navigator.clipboard.writeText(shareUrl);
-                                alert("✓ 카카오톡 공유용 동기화 링크가 복사되었습니다!\n스마트폰 카톡으로 보내서 열면 최신 데이터가 바로 반영됩니다:\n\n" + shareUrl);
-                              }
-                            }}
-                            className="bg-[#15803D] hover:bg-[#166534] text-white font-bold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm"
-                          >
-                            <span>📋</span> 스마트폰/카카오톡 공유 링크 복사 (?sanity={cleanSanityConfig(sanityConfig).projectId})
-                          </button>
-                        </div>
-                        <p className="text-[10.5px] text-[#15803D]/80">
-                          * 모든 방문자에게 영구 적용하려면 Vercel 대시보드 &gt; Environment Variables에 <code>VITE_SANITY_PROJECT_ID = {cleanSanityConfig(sanityConfig).projectId}</code>를 등록하세요.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : activeSection === "password" ? (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-extrabold text-[#1E2B3A] tracking-tight">관리자 비밀번호 설정</h3>
-                    <p className="text-xs text-[#6B7280] mt-1">
-                      관리자 모드 접속 시 사용할 새로운 비밀번호를 설정할 수 있습니다.
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleChangePassword} className="space-y-3 bg-gray-50 border border-gray-200 rounded-2xl p-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#4A5A6A] mb-1">
-                        현재 비밀번호
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="현재 사용 중인 비밀번호를 입력하세요"
-                        value={pwForm.current}
-                        onChange={e => setPwForm(prev => ({ ...prev, current: e.target.value }))}
-                        className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-white outline-none focus:border-[#FF7F50] transition"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-[#4A5A6A] mb-1">
-                        새 비밀번호 (4자리 이상)
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="새 비밀번호 입력"
-                        value={pwForm.newPw}
-                        onChange={e => setPwForm(prev => ({ ...prev, newPw: e.target.value }))}
-                        className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-white outline-none focus:border-[#FF7F50] transition"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-[#4A5A6A] mb-1">
-                        새 비밀번호 확인
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="새 비밀번호 다시 입력"
-                        value={pwForm.confirmPw}
-                        onChange={e => setPwForm(prev => ({ ...prev, confirmPw: e.target.value }))}
-                        className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-white outline-none focus:border-[#FF7F50] transition"
-                        required
-                      />
-                    </div>
-
-                    {pwMsg && (
-                      <div className={`p-3 rounded-xl text-xs font-semibold ${
-                        pwMsg.type === "success"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-red-50 text-red-700 border border-red-200"
-                      }`}>
-                        {pwMsg.text}
-                      </div>
-                    )}
-
-                    <div className="pt-2 flex items-center justify-between gap-3 border-t border-gray-200">
-                      <button
-                        type="submit"
-                        className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-xs py-2.5 px-5 rounded-xl transition cursor-pointer shadow-sm"
-                      >
-                        비밀번호 변경하기
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleResetPassword}
-                        className="text-[11px] text-gray-500 hover:text-red-500 underline transition cursor-pointer"
-                      >
-                        기본값(hanwoori2024)으로 초기화
-                      </button>
-                    </div>
-                  </form>
-                  <p className="text-[11px] text-[#8A9AB0] leading-relaxed">
-                    * 변경된 비밀번호는 브라우저 보안 저장소에 안전하게 보관됩니다.
-                  </p>
-                </div>
               ) : currentSection ? (
                 <>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-extrabold text-[#1E2B3A] tracking-tight">{currentSection.label}</h3>
-                    <span className="text-[11px] text-gray-400">수정 후 아래 '저장하기'를 클릭하세요</span>
-                  </div>
+                  <h3 className="text-sm font-extrabold text-[#1E2B3A] tracking-tight">{currentSection.label}</h3>
                   {currentSection.fields.map(f => (
                     <div key={f.key}>
                       <label className="block text-xs font-semibold text-[#6B7280] mb-1.5">{f.label}</label>
                       {f.type === "textarea" ? (
                         <textarea
                           rows={4}
-                          value={localValues[`${currentSection.id}.${f.key}`] ?? ""}
-                          onChange={e => setLocalValues(v => ({ ...v, [`${currentSection.id}.${f.key}`]: e.target.value }))}
+                          value={values[`${currentSection.id}.${f.key}`]}
+                          onChange={e => setValues(v => ({ ...v, [`${currentSection.id}.${f.key}`]: e.target.value }))}
                           className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF7F50] transition resize-none leading-relaxed"
                         />
                       ) : (
                         <input
                           type="text"
-                          value={localValues[`${currentSection.id}.${f.key}`] ?? ""}
-                          onChange={e => setLocalValues(v => ({ ...v, [`${currentSection.id}.${f.key}`]: e.target.value }))}
+                          value={values[`${currentSection.id}.${f.key}`]}
+                          onChange={e => setValues(v => ({ ...v, [`${currentSection.id}.${f.key}`]: e.target.value }))}
                           className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF7F50] transition"
                         />
                       )}
@@ -2637,25 +1640,23 @@ function AdminModal({
                 </>
               ) : null}
 
-              {/* 저장 버튼 (QnA, 수업소식, Sanity 설정, 비밀번호 제외 탭) */}
-              {activeSection !== "qna" && activeSection !== "reviews" && activeSection !== "sanity" && activeSection !== "password" && (
-                <div className="mt-2 flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
-                    <button onClick={handleSave}
-                      className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-sm px-7 py-3 rounded-xl transition cursor-pointer shadow-md shadow-orange-100">
-                      저장하기
-                    </button>
-                    {saved && (
-                      <span className="text-xs text-emerald-600 font-bold animate-pulse">
-                        {saveStatusMsg || "✓ 웹사이트에 즉시 반영되었습니다!"}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-[#888]">
-                    * 저장을 누르면 즉시 웹사이트 화면에 반영되고 브라우저 및 연결된 Sanity DB에 저장됩니다.
-                  </p>
+              {/* 저장 버튼 — QnA·리뷰 탭은 자체 저장 */}
+              {activeSection !== "qna" && activeSection !== "reviews" && (
+                <div className="mt-2 flex items-center gap-3">
+                  <button onClick={handleSave}
+                    className="bg-[#FF7F50] hover:bg-[#E8623A] text-white font-bold text-sm px-6 py-2.5 rounded-xl transition">
+                    저장하기
+                  </button>
+                  {saved && (
+                    <span className="text-xs text-emerald-600 font-semibold animate-pulse">
+                      ✓ 저장됐습니다 (Sanity 연동 후 반영)
+                    </span>
+                  )}
                 </div>
               )}
+              <p className="text-[10px] text-[#aaa] mt-1">
+                * Sanity CMS 연동 전까지는 실제 페이지에 반영되지 않습니다.
+              </p>
             </div>
           </div>
         )}
@@ -2671,79 +1672,16 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [page, setPage] = useState<"home" | "qna" | "reviews">("home");
   const [adminOpen, setAdminOpen] = useState(false);
-
-  // 로컬 영구 저장소 또는 기본값으로 상태 복원
-  const [siteValues, setSiteValues] = useState<Record<string, string>>(() =>
-    loadLocalData(LOCAL_STORAGE_SITE_DATA_KEY, DEFAULT_VALUES)
-  );
-  const [liveQna, setLiveQna] = useState<QnaItem[]>(() =>
-    loadLocalData(LOCAL_STORAGE_QNA_KEY, QNA_LIST)
-  );
-  const [liveReviews, setLiveReviews] = useState<Review[]>(() =>
-    loadLocalData(LOCAL_STORAGE_REVIEWS_KEY, REVIEW_SAMPLES)
-  );
-
+  const [liveQna, setLiveQna] = useState<QnaItem[]>(QNA_LIST);
+  const [liveReviews, setLiveReviews] = useState<Review[]>(REVIEW_SAMPLES);
   const footerClickCount = useRef(0);
   const footerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 화면 리사이즈 감지
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
-
-  // 앱 마운트 시: Sanity DB에 저장된 최신 데이터가 있다면 자동 동기화
-  useEffect(() => {
-    fetchSanityData().then(remote => {
-      if (remote) {
-        if (remote.adminPassword) {
-          saveStoredAdminPassword(remote.adminPassword);
-        }
-        if (remote.values && Object.keys(remote.values).length > 0) {
-          setSiteValues(prev => {
-            const merged = { ...prev, ...remote.values };
-            saveLocalData(LOCAL_STORAGE_SITE_DATA_KEY, merged);
-            return merged;
-          });
-        }
-        if (remote.qnaList && remote.qnaList.length > 0) {
-          setLiveQna(remote.qnaList);
-          saveLocalData(LOCAL_STORAGE_QNA_KEY, remote.qnaList);
-        }
-        if (remote.reviews && remote.reviews.length > 0) {
-          setLiveReviews(remote.reviews);
-          saveLocalData(LOCAL_STORAGE_REVIEWS_KEY, remote.reviews);
-        }
-      }
-    }).catch(e => {
-      console.log("Sanity 자동 동기화 대기 중", e);
-    });
-
-    // URL에 admin 또는 adminToken이 있으면 관리자 모달 자동 열기
-    if (typeof window !== "undefined") {
-      const search = window.location.search;
-      const hash = window.location.hash;
-      if (search.includes("admin=1") || hash.includes("admin") || hash.includes("adminToken")) {
-        setAdminOpen(true);
-      }
-    }
-  }, []);
-
-  function handleQnaChange(list: QnaItem[]) {
-    setLiveQna(list);
-    saveLocalData(LOCAL_STORAGE_QNA_KEY, list);
-  }
-
-  function handleReviewsChange(list: Review[]) {
-    setLiveReviews(list);
-    saveLocalData(LOCAL_STORAGE_REVIEWS_KEY, list);
-  }
-
-  function handleValuesChange(vals: Record<string, string>) {
-    setSiteValues(vals);
-    saveLocalData(LOCAL_STORAGE_SITE_DATA_KEY, vals);
-  }
 
   function handleFooterClick() {
     footerClickCount.current += 1;
@@ -2757,17 +1695,7 @@ export default function App() {
 
   return (
     <>
-      {adminOpen && (
-        <AdminModal
-          onClose={() => setAdminOpen(false)}
-          qnaList={liveQna}
-          onQnaChange={handleQnaChange}
-          reviews={liveReviews}
-          onReviewsChange={handleReviewsChange}
-          values={siteValues}
-          onValuesChange={handleValuesChange}
-        />
-      )}
+      {adminOpen && <AdminModal onClose={() => setAdminOpen(false)} qnaList={liveQna} onQnaChange={setLiveQna} reviews={liveReviews} onReviewsChange={setLiveReviews} />}
       <div onClick={e => {
         const footer = (e.target as HTMLElement).closest("footer");
         if (footer) handleFooterClick();
@@ -2777,18 +1705,8 @@ export default function App() {
           : page === "reviews"
             ? <ReviewPage onBack={() => { setPage("home"); window.scrollTo(0, 0); }} reviews={liveReviews} />
             : isMobile
-              ? <MobileLayout
-                  onQna={() => setPage("qna")}
-                  onReview={() => setPage("reviews")}
-                  values={siteValues}
-                  onOpenAdmin={() => setAdminOpen(true)}
-                />
-              : <PCLayout
-                  onQna={() => setPage("qna")}
-                  onReview={() => setPage("reviews")}
-                  values={siteValues}
-                  onOpenAdmin={() => setAdminOpen(true)}
-                />
+              ? <MobileLayout onQna={() => setPage("qna")} onReview={() => setPage("reviews")} />
+              : <PCLayout onQna={() => setPage("qna")} onReview={() => setPage("reviews")} />
         }
       </div>
     </>
