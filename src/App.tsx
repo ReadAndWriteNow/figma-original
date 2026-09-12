@@ -30,7 +30,7 @@ const DEFAULT_VALUES: Record<string, string> = {
   "intro.badge": "파주운정 산내푸르지오 · 10년 원장 직강 소수정예",
   "intro.headline": "스마트폰에 빼앗긴 문해력,\n스스로 생각하고 표현하는 아이로",
   "intro.quote": "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간",
-  "intro.sub": "스스로 생각의 씨앗을 틔울 수 있도록 돕습니다.",
+  "intro.sub": "한우리 30년 연구 커리큘럼과 10년 유아교육 전문 원장의 1:1 밀착 지도로 우리 아이 평생의 문해력과 사고력 자산을 선물합니다.",
   "intro.point1_title": "10년 원장 직강",
   "intro.point1_desc": "보조강사 없이 직접 지도",
   "intro.point2_title": "1반 최대 6명",
@@ -44,7 +44,7 @@ const DEFAULT_VALUES: Record<string, string> = {
   "about.career": "독서토론논술 교습소 운영 (10년 경력)\n해법·한우리 독서토론교습소 운영\n독서지도사 자격 보유",
   "about.desc": "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다.",
   "about.letter": "제 아이를 책으로 키우며 느꼈던 배움의 감동을 우리 지역 아이들에게 전하고자 시작한 지 10년이 되었습니다. 성급하게 재촉하지 않고, 아이마다 다른 생각의 보폭을 따뜻하게 지켜보겠습니다.",
-  "curriculum.elem_title": "저학년 / 고학년",
+  "curriculum.elem_title": "저학년 / 고학년 독서토론논술",
   "curriculum.elem_body": "그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행.",
   "curriculum.mid_title": "내신 및 심화 논술",
   "curriculum.mid_body": "비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성.",
@@ -256,6 +256,379 @@ function KakaoMap({ address }: { address?: string }) {
 }
 
 /* ═══════════════════════════════════════
+   대화형 Q&A 및 고민 캐릭터 컴포넌트
+═══════════════════════════════════════ */
+
+/* ─── 대화형 캐릭터 아바타 (학부모님) ─── */
+function ParentAvatar({ className = "w-14 h-14 md:w-16 md:h-16" }: { className?: string }) {
+  return (
+    <div className={`relative shrink-0 rounded-full border-[2.5px] border-[#0F172A] bg-[#FFEDD5] flex items-center justify-center overflow-hidden shadow-xs ${className}`}>
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        {/* 배경 원 (따뜻한 연살구/아이보리) */}
+        <circle cx="50" cy="50" r="48" fill="#FFEDD5" />
+
+        {/* 학부모님 뒷머리 (풍성하고 단정한 미디엄 헤어) */}
+        <path d="M20 46 C16 68, 20 86, 28 96 L72 96 C80 86, 84 68, 80 46 Z" fill="#1E293B" />
+        
+        {/* 상의 (세련된 소프트 핑크/코랄 니트 가디건과 라운드 넥) */}
+        <path d="M16 96 C16 74, 32 68, 50 68 C68 68, 84 74, 84 96 Z" fill="#FCE7F3" stroke="#0F172A" strokeWidth="3" />
+        <path d="M38 68 C42 80, 58 80, 62 68" fill="#FFFFFF" stroke="#0F172A" strokeWidth="2.5" />
+        <path d="M50 78 L50 96" stroke="#0F172A" strokeWidth="2" strokeDasharray="3 2" />
+        {/* 목걸이 포인트 */}
+        <circle cx="50" cy="74" r="2.5" fill="#F59E0B" stroke="#0F172A" strokeWidth="1.5" />
+
+        {/* 목 */}
+        <rect x="43" y="52" width="14" height="18" fill="#FFE4D6" stroke="#0F172A" strokeWidth="2.5" />
+
+        {/* 얼굴 */}
+        <ellipse cx="50" cy="42" rx="22" ry="23" fill="#FFE4D6" stroke="#0F172A" strokeWidth="3" />
+
+        {/* 귀 & 귀걸이 */}
+        <circle cx="28" cy="44" r="5" fill="#FFE4D6" stroke="#0F172A" strokeWidth="2.5" />
+        <circle cx="72" cy="44" r="5" fill="#FFE4D6" stroke="#0F172A" strokeWidth="2.5" />
+        <circle cx="28" cy="48" r="2" fill="#F59E0B" stroke="#0F172A" strokeWidth="1.5" />
+        <circle cx="72" cy="48" r="2" fill="#F59E0B" stroke="#0F172A" strokeWidth="1.5" />
+
+        {/* 앞머리 & 옆머리 (자연스러운 사이드 웨이브) */}
+        <path d="M28 36 C28 20, 38 16, 50 16 C62 16, 72 20, 72 36 C66 25, 56 22, 50 23 C42 22, 34 26, 28 36 Z" fill="#1E293B" />
+        <path d="M28 34 C33 44, 32 58, 29 66 C32 58, 35 46, 33 36 Z" fill="#1E293B" />
+        <path d="M72 34 C67 44, 68 58, 71 66 C68 58, 65 46, 67 36 Z" fill="#1E293B" />
+        <path d="M38 23 Q48 29 58 24" stroke="#0F172A" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+
+        {/* 눈썹 (부드럽고 우아한 곡선) */}
+        <path d="M36 33 Q41 30 46 32" stroke="#0F172A" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+        <path d="M54 32 Q59 30 64 33" stroke="#0F172A" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+
+        {/* 눈 (상냥하고 호기심 어린 눈망울 + 반짝임) */}
+        <ellipse cx="42" cy="38" rx="3.2" ry="4" fill="#0F172A" />
+        <ellipse cx="58" cy="38" rx="3.2" ry="4" fill="#0F172A" />
+        <circle cx="43" cy="37" r="1.2" fill="#FFFFFF" />
+        <circle cx="59" cy="37" r="1.2" fill="#FFFFFF" />
+        <path d="M39 34 L37 32" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M61 34 L63 32" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" />
+
+        {/* 복숭아빛 볼터치 */}
+        <ellipse cx="35" cy="46" rx="5.5" ry="3" fill="#FB7185" opacity="0.65" />
+        <ellipse cx="65" cy="46" rx="5.5" ry="3" fill="#FB7185" opacity="0.65" />
+
+        {/* 코 & 상냥한 미소 */}
+        <path d="M50 40 L48 44 L52 44" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M44 48 Q50 54 56 48" stroke="#0F172A" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+      </svg>
+    </div>
+  );
+}
+
+/* ─── 대화형 캐릭터 아바타 (원장 선생님) ─── */
+function TeacherAvatar({ className = "w-14 h-14 md:w-16 md:h-16" }: { className?: string }) {
+  return (
+    <div className={`relative shrink-0 rounded-full border-[2.5px] border-[#0F172A] bg-[#FED7AA] flex items-center justify-center overflow-hidden shadow-xs ${className}`}>
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        {/* 배경 원 (시그니처 연주황) */}
+        <circle cx="50" cy="50" r="48" fill="#FED7AA" />
+
+        {/* 뒷머리 (단정한 숏보브 컷) */}
+        <path d="M22 45 C18 68, 22 84, 28 92 L72 92 C78 84, 82 68, 78 45 Z" fill="#0F172A" />
+
+        {/* 의상 (클래식한 오렌지/옐로우 투톤 자켓 & 셔츠 카라) */}
+        <path d="M16 96 C16 72, 32 68, 50 68 C68 68, 84 72, 84 96 Z" fill="#FDE047" stroke="#0F172A" strokeWidth="3" />
+        <path d="M38 68 L50 84 L62 68" fill="#FFFFFF" stroke="#0F172A" strokeWidth="2.5" />
+        <path d="M34 68 L48 88 L32 96" fill="#EA580C" stroke="#0F172A" strokeWidth="2" />
+        <path d="M66 68 L52 88 L68 96" fill="#EA580C" stroke="#0F172A" strokeWidth="2" />
+
+        {/* 목 */}
+        <rect x="43" y="52" width="14" height="18" fill="#FFE4D6" stroke="#0F172A" strokeWidth="2.5" />
+
+        {/* 얼굴 */}
+        <ellipse cx="50" cy="42" rx="22" ry="23" fill="#FFE4D6" stroke="#0F172A" strokeWidth="3" />
+
+        {/* 귀 & 단정한 진주 귀걸이 */}
+        <circle cx="28" cy="44" r="5" fill="#FFE4D6" stroke="#0F172A" strokeWidth="2.5" />
+        <circle cx="72" cy="44" r="5" fill="#FFE4D6" stroke="#0F172A" strokeWidth="2.5" />
+        <circle cx="28" cy="47" r="2.5" fill="#FFFFFF" stroke="#0F172A" strokeWidth="1.5" />
+        <circle cx="72" cy="47" r="2.5" fill="#FFFFFF" stroke="#0F172A" strokeWidth="1.5" />
+
+        {/* 앞머리 & 보브 라인 */}
+        <path d="M28 38 C28 20, 38 16, 50 16 C62 16, 72 20, 72 38 C66 26, 56 22, 50 22 C40 22, 34 26, 28 38 Z" fill="#0F172A" />
+        <path d="M26 36 C30 46, 28 60, 27 68 C30 60, 33 48, 31 38 Z" fill="#0F172A" />
+        <path d="M74 36 C70 46, 72 60, 73 68 C70 60, 67 48, 69 38 Z" fill="#0F172A" />
+
+        {/* 눈썹 (지적이고 신뢰감 있는 형태) */}
+        <path d="M36 32 Q41 29 46 32" stroke="#0F172A" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+        <path d="M54 32 Q59 29 64 32" stroke="#0F172A" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+
+        {/* 눈 (반달 모양의 환한 눈웃음) */}
+        <path d="M38 38 Q42 33 46 38" stroke="#0F172A" strokeWidth="3" strokeLinecap="round" fill="none" />
+        <path d="M54 38 Q58 33 62 38" stroke="#0F172A" strokeWidth="3" strokeLinecap="round" fill="none" />
+
+        {/* 코랄 볼터치 */}
+        <ellipse cx="34" cy="46" rx="5.5" ry="3" fill="#FB7185" opacity="0.7" />
+        <ellipse cx="66" cy="46" rx="5.5" ry="3" fill="#FB7185" opacity="0.7" />
+
+        {/* 코 & 활짝 웃는 신뢰의 미소 (치아와 입) */}
+        <path d="M50 39 L48 43 L52 43" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M42 47 Q50 57 58 47 Z" fill="#E11D48" stroke="#0F172A" strokeWidth="2.5" />
+        <path d="M45 47 Q50 50 55 47" stroke="#FFFFFF" strokeWidth="2" fill="none" />
+      </svg>
+    </div>
+  );
+}
+
+/* ─── 상단 방사형 Q&A 헤더 (햇살/스파크 라인 장식) ─── */
+function QnASparkleHeader({ title = "Q & A", subtitle }: { title?: string; subtitle?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center mb-6">
+      <div className="flex items-center justify-center gap-2 md:gap-3.5">
+        {/* 좌측 광선 */}
+        <svg className="w-6 h-6 md:w-8 md:h-8 text-[#0F172A]" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+          <line x1="32" y1="20" x2="10" y2="8" />
+          <line x1="34" y1="20" x2="8" y2="20" />
+          <line x1="32" y1="20" x2="10" y2="32" />
+          <line x1="28" y1="12" x2="14" y2="4" />
+          <line x1="28" y1="28" x2="14" y2="36" />
+        </svg>
+
+        <h3 className="font-serif-kr text-2xl md:text-3xl font-black text-[#0F172A] tracking-wider">
+          {title}
+        </h3>
+
+        {/* 우측 광선 */}
+        <svg className="w-6 h-6 md:w-8 md:h-8 text-[#0F172A]" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+          <line x1="8" y1="20" x2="30" y2="8" />
+          <line x1="6" y1="20" x2="32" y2="20" />
+          <line x1="8" y1="20" x2="30" y2="32" />
+          <line x1="12" y1="12" x2="26" y2="4" />
+          <line x1="12" y1="28" x2="26" y2="36" />
+        </svg>
+      </div>
+      {subtitle && (
+        <p className="text-xs md:text-sm text-stone-600 font-semibold mt-1.5">
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ─── 대화형 Q&A 말풍선 카드 (기존 색상 체계: 깨끗한 흰색 & 부드러운 연주황색) ─── */
+function ConversationalDialogueCard({
+  tag,
+  question,
+  questionSub,
+  answerTitle,
+  answerBody,
+  answerHtml,
+  badgeText = "고민과 솔루션 대화",
+  showSparkle = false,
+}: {
+  tag?: string;
+  question: string;
+  questionSub?: string;
+  answerTitle?: string;
+  answerBody?: string;
+  answerHtml?: string;
+  badgeText?: string;
+  showSparkle?: boolean;
+}) {
+  return (
+    <div className="relative bg-white rounded-3xl border-2 border-[#0F172A] p-5 md:p-8 shadow-sm transition-all hover:shadow-md">
+      {/* 액자형 안쪽 테두리 장식 (포인트 오렌지 라인) */}
+      <div className="absolute inset-1.5 md:inset-2.5 rounded-[20px] md:rounded-[22px] border border-orange-200/70 pointer-events-none" />
+
+      {/* 상단 Q&A 타이틀 */}
+      {showSparkle ? (
+        <QnASparkleHeader title={tag || "Q & A"} subtitle={badgeText} />
+      ) : tag ? (
+        <div className="flex items-center justify-between mb-5 pb-2.5 border-b border-stone-100">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-[#EA580C] text-xs font-black border border-orange-300">
+            <span>💡</span>
+            <span>{tag}</span>
+          </span>
+          <span className="text-[11px] font-bold text-stone-400">
+            {badgeText}
+          </span>
+        </div>
+      ) : null}
+
+      {/* 1. 상단: 학부모 질문 (깨끗한 흰색 / 아이보리 말풍선 + 좌측 꼬리) */}
+      <div className="flex items-start gap-3 md:gap-5 mb-5 md:mb-7">
+        <div className="flex flex-col items-center shrink-0">
+          <ParentAvatar className="w-13 h-13 md:w-16 md:h-16" />
+          <span className="text-[10px] md:text-[11px] font-extrabold text-stone-700 mt-1 px-1.5 py-0.5 rounded bg-stone-100 border border-stone-200">
+            학부모님
+          </span>
+        </div>
+
+        {/* 질문 말풍선 (흰색 배경) */}
+        <div className="relative flex-1 bg-white border-2 border-[#0F172A] rounded-2xl p-3.5 md:p-5 text-[#0F172A] shadow-2xs">
+          {/* 말풍선 좌측 꼬리 */}
+          <div className="absolute -left-[10px] top-4 md:top-5 w-0 h-0 border-y-[7px] border-y-transparent border-r-[10px] border-r-[#0F172A]" />
+          <div className="absolute -left-[6px] top-4 md:top-5 w-0 h-0 border-y-[7px] border-y-transparent border-r-[8px] border-r-white" />
+
+          <p className="font-serif-kr text-sm md:text-base font-black leading-snug text-[#0F172A]">
+            "{question}"
+          </p>
+          {questionSub && (
+            <p className="text-xs text-stone-600 mt-1 leading-relaxed font-medium">
+              {questionSub}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* 2. 하단: 원장 선생님 솔루션 (연주황색 bg-orange-50 말풍선 + 우측 꼬리) */}
+      <div className="flex items-start justify-end gap-3 md:gap-5">
+        {/* 솔루션 말풍선 (연주황색 배경) */}
+        <div className="relative flex-1 bg-orange-50/90 md:bg-[#FFF7ED] border-2 border-[#0F172A] rounded-2xl p-3.5 md:p-5 text-[#0F172A] shadow-2xs">
+          {/* 말풍선 우측 꼬리 */}
+          <div className="absolute -right-[10px] top-4 md:top-5 w-0 h-0 border-y-[7px] border-y-transparent border-l-[10px] border-l-[#0F172A]" />
+          <div className="absolute -right-[6px] top-4 md:top-5 w-0 h-0 border-y-[7px] border-y-transparent border-l-[8px] border-l-[#FFF7ED]" />
+
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-xs font-black text-[#EA580C]">✦ 한우리 원장 솔루션</span>
+          </div>
+
+          {answerTitle && (
+            <p className="font-serif-kr text-sm md:text-base font-black text-[#0F172A] leading-snug mb-1">
+              {answerTitle}
+            </p>
+          )}
+
+          {answerBody && (
+            <p className="text-xs md:text-sm text-stone-800 leading-relaxed font-medium whitespace-pre-line">
+              {answerBody}
+            </p>
+          )}
+
+          {answerHtml && (
+            <div
+              className="text-xs md:text-sm text-stone-800 leading-relaxed font-medium mt-1.5 [&_strong]:text-[#0F172A] [&_strong]:font-black [&_img]:rounded-xl [&_img]:border [&_img]:border-stone-200 [&_img]:mt-2.5"
+              dangerouslySetInnerHTML={{ __html: answerHtml }}
+            />
+          )}
+        </div>
+
+        <div className="flex flex-col items-center shrink-0">
+          <TeacherAvatar className="w-13 h-13 md:w-16 md:h-16" />
+          <span className="text-[10px] md:text-[11px] font-extrabold text-[#EA580C] mt-1 px-1.5 py-0.5 rounded bg-orange-100/80 border border-orange-200">
+            이해옥 원장
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 학부모 공감 & 솔루션 대화 통합 데이터 ─── */
+const PARENT_WORRY_DATA = [
+  {
+    tag: "고민 01",
+    tabLabel: "생각 표현 & 말하기",
+    question: "책은 많이 읽는데, 줄거리나 생각을 물어보면 머뭇거려요.",
+    questionSub: "활자만 스치는 수동적 독서에 익숙해져 내 생각으로 소화하는 과정을 경험하지 못했을 때",
+    answerTitle: "질문을 던지고 토론하는 '생각 열기 수업'으로 생각을 말로 이끕니다!",
+    answerBody: "단순히 읽기만 하는 것이 아니라, 질문을 주고받고 친구들과 토론하며 읽은 내용을 능동적인 사고와 자신 있는 말하기로 이끌어냅니다.",
+  },
+  {
+    tag: "고민 02",
+    tabLabel: "서술형 & 비문학 독해",
+    question: "초등 고학년, 중학교 서술형 평가와 긴 지문 독해가 걱정돼요.",
+    questionSub: "문학 위주의 읽기만으로는 교과 과정의 다양한 비문학 지문과 논리적 작문 요구를 감당하기 어려울 때",
+    answerTitle: "문학·비문학·시사 칼럼을 고루 다루며 수능 국어와 내신 서술형의 탄탄한 토대를 만듭니다!",
+    answerBody: "풍부한 배경지식 독해와 1:1 맞춤 글쓰기 첨삭으로 학교 서술형 평가와 긴 수능 지문에도 흔들리지 않는 독해력을 길러줍니다.",
+  },
+  {
+    tag: "고민 03",
+    tabLabel: "숏폼 탈출 & 몰입독서",
+    question: "스마트폰과 숏폼에 익숙해져 한 권을 끝까지 집중해서 읽지 못해요.",
+    questionSub: "자극적인 짧은 콘텐츠로 인해 긴 호흡의 글을 참고 완독하는 뇌의 집중 근력이 약해져 있을 때",
+    answerTitle: "원장이 전 과정을 밀착 지도하는 '몰입독서'로 스스로 한 권을 완독하는 힘을 기릅니다!",
+    answerBody: "처음부터 끝까지 교사가 곁에서 밀착하여 집중력을 잡아주며, 한 권을 스스로 끝까지 읽어내는 큰 성취감과 평생의 독서 습관을 심어줍니다.",
+  },
+];
+
+/* ─── 학부모 공감 & 솔루션 대화형 인터랙티브 섹션 (메인페이지 3번 섹션) ─── */
+function ParentEmpathyDialogueSection({ values }: { values?: Record<string, string> }) {
+  const [selectedIdx, setSelectedIdx] = useState<number | "all">(0);
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      {/* 햇살 방사형 Q&A 헤더 */}
+      <QnASparkleHeader
+        title="Q & A"
+        subtitle="학부모님의 고민과 원장님의 1:1 맞춤 교육 솔루션"
+      />
+
+      <div className="text-center max-w-2xl mx-auto mb-7">
+        <h3 className="font-serif-kr text-2xl md:text-3xl font-black text-[#0F172A] leading-snug">
+          학부모님, 요즘 우리 아이 독서에<br className="hidden sm:inline" />
+          이런 고민이 있으신가요?
+        </h3>
+        <p className="text-xs md:text-sm text-stone-500 mt-2">
+          단순한 읽기를 넘어 스스로 생각하고 표현하는 체계적인 해답을 드립니다.
+        </p>
+      </div>
+
+      {/* 고민 탭 선택기 (부드러운 전환) */}
+      <div className="flex flex-wrap items-center justify-center gap-2 mb-7">
+        {PARENT_WORRY_DATA.map((item, idx) => (
+          <button
+            key={item.tag}
+            onClick={() => setSelectedIdx(idx)}
+            className={`px-3.5 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold border transition-all active:scale-95 ${
+              selectedIdx === idx
+                ? "bg-[#0F172A] border-[#0F172A] text-white shadow-xs"
+                : "bg-white border-stone-200 text-stone-700 hover:border-orange-300 hover:text-[#EA580C]"
+            }`}
+          >
+            <span>{item.tag}: </span>
+            <span>{item.tabLabel}</span>
+          </button>
+        ))}
+        <button
+          onClick={() => setSelectedIdx("all")}
+          className={`px-3.5 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold border transition-all active:scale-95 ${
+            selectedIdx === "all"
+              ? "bg-[#EA580C] border-[#EA580C] text-white shadow-xs"
+              : "bg-white border-stone-200 text-stone-700 hover:border-orange-300 hover:text-[#EA580C]"
+          }`}
+        >
+          <span>👀 전체 대화 보기</span>
+        </button>
+      </div>
+
+      {/* 대화형 카드 렌더링 */}
+      {selectedIdx === "all" ? (
+        <div className="space-y-6">
+          {PARENT_WORRY_DATA.map((item) => (
+            <ConversationalDialogueCard
+              key={item.tag}
+              tag={item.tag}
+              question={item.question}
+              questionSub={item.questionSub}
+              answerTitle={item.answerTitle}
+              answerBody={item.answerBody}
+              badgeText="1:1 맞춤 교육 대화"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="animate-in fade-in duration-200">
+          <ConversationalDialogueCard
+            tag={PARENT_WORRY_DATA[selectedIdx].tag}
+            question={PARENT_WORRY_DATA[selectedIdx].question}
+            questionSub={PARENT_WORRY_DATA[selectedIdx].questionSub}
+            answerTitle={PARENT_WORRY_DATA[selectedIdx].answerTitle}
+            answerBody={PARENT_WORRY_DATA[selectedIdx].answerBody}
+            badgeText="1:1 맞춤 교육 대화"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════
    MOBILE LAYOUT (프리미엄 에디토리얼 마케팅 디자인)
 ═══════════════════════════════════════ */
 function MobileLayout({
@@ -388,79 +761,38 @@ function MobileLayout({
             <div className="bg-[#FAFAF9] p-2.5 rounded-xl border border-stone-200/70 flex items-center gap-2">
               <span className="text-base shrink-0">🎓</span>
               <div>
-                <p className="text-xs font-bold text-[#0F172A]">10년 원장 직강</p>
-                <p className="text-[10px] text-stone-500">보조강사 없이 직접 지도</p>
+                <p className="text-xs font-bold text-[#0F172A]">{values["intro.point1_title"] || "10년 원장 직강"}</p>
+                <p className="text-[10px] text-stone-500">{values["intro.point1_desc"] || "보조강사 없이 직접 지도"}</p>
               </div>
             </div>
             <div className="bg-[#FAFAF9] p-2.5 rounded-xl border border-stone-200/70 flex items-center gap-2">
               <span className="text-base shrink-0">👥</span>
               <div>
-                <p className="text-xs font-bold text-[#0F172A]">1반 최대 6명</p>
-                <p className="text-[10px] text-stone-500">발표 & 토론 기회 보장</p>
+                <p className="text-xs font-bold text-[#0F172A]">{values["intro.point2_title"] || "1반 최대 6명"}</p>
+                <p className="text-[10px] text-stone-500">{values["intro.point2_desc"] || "발표 & 토론 기회 보장"}</p>
               </div>
             </div>
             <div className="bg-[#FAFAF9] p-2.5 rounded-xl border border-stone-200/70 flex items-center gap-2">
               <span className="text-base shrink-0">📚</span>
               <div>
-                <p className="text-xs font-bold text-[#0F172A]">매월 새 필독서</p>
-                <p className="text-[10px] text-stone-500">교과연계 한우리 30년</p>
+                <p className="text-xs font-bold text-[#0F172A]">{values["intro.point3_title"] || "매월 새 필독서"}</p>
+                <p className="text-[10px] text-stone-500">{values["intro.point3_desc"] || "교과연계 한우리 30년"}</p>
               </div>
             </div>
             <div className="bg-[#FAFAF9] p-2.5 rounded-xl border border-stone-200/70 flex items-center gap-2">
               <span className="text-base shrink-0">✍️</span>
               <div>
-                <p className="text-xs font-bold text-[#0F172A]">1:1 맞춤 첨삭</p>
-                <p className="text-[10px] text-stone-500">정기 포트폴리오 관리</p>
+                <p className="text-xs font-bold text-[#0F172A]">{values["intro.point4_title"] || "1:1 맞춤 첨삭"}</p>
+                <p className="text-[10px] text-stone-500">{values["intro.point4_desc"] || "정기 포트폴리오 관리"}</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. 학부모 공감 솔루션 (Parent's Worry & Solution) */}
-      <section className="px-5 py-8 bg-[#F7F6F3] border-b border-stone-200/70">
-        <div className="max-w-md mx-auto">
-          <p className="text-[11px] font-bold text-[#EA580C] uppercase tracking-wider mb-1">Parent's Worry & Solution</p>
-          <h3 className="font-serif-kr text-lg font-black text-[#0F172A] leading-snug mb-3.5">
-            학부모님, 요즘 우리 아이 독서에<br />
-            이런 고민이 있으신가요?
-          </h3>
-
-          <div className="space-y-2.5">
-            <div className="bg-white p-3.5 rounded-xl border border-stone-200/80 shadow-xs">
-              <p className="text-xs font-bold text-stone-900 flex items-start gap-1.5 mb-1.5">
-                <span className="text-[#EA580C] font-black shrink-0">고민 01</span>
-                <span>"책은 많이 읽는데, 줄거리나 생각을 물어보면 머뭇거려요."</span>
-              </p>
-              <div className="bg-orange-50/60 p-2.5 rounded-lg border border-orange-200/60 text-xs text-stone-600 leading-relaxed">
-                <span className="font-bold text-[#EA580C]">✦ 한우리의 솔루션: </span>
-                수동적 읽기를 넘어 질문을 던지고 토론하는 <strong>'생각 열기 수업'</strong>으로 능동적 사고와 말하기를 이끕니다.
-              </div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-stone-200/80 shadow-xs">
-              <p className="text-xs font-bold text-stone-900 flex items-start gap-1.5 mb-1.5">
-                <span className="text-[#EA580C] font-black shrink-0">고민 02</span>
-                <span>"초등 고학년, 중학교 서술형 평가와 긴 지문 독해가 걱정돼요."</span>
-              </p>
-              <div className="bg-orange-50/60 p-2.5 rounded-lg border border-orange-200/60 text-xs text-stone-600 leading-relaxed">
-                <span className="font-bold text-[#EA580C]">✦ 한우리의 솔루션: </span>
-                문학·비문학·시사 칼럼을 고루 다루어 <strong>수능 국어와 내신 서술형의 탄탄한 토대</strong>를 미리 다집니다.
-              </div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-stone-200/80 shadow-xs">
-              <p className="text-xs font-bold text-stone-900 flex items-start gap-1.5 mb-1.5">
-                <span className="text-[#EA580C] font-black shrink-0">고민 03</span>
-                <span>"스마트폰과 숏폼에 익숙해져 한 권을 끝까지 읽지 못해요."</span>
-              </p>
-              <div className="bg-orange-50/60 p-2.5 rounded-lg border border-orange-200/60 text-xs text-stone-600 leading-relaxed">
-                <span className="font-bold text-[#EA580C]">✦ 한우리의 솔루션: </span>
-                원장이 전 과정을 밀착 지도하는 <strong>'몰입독서'</strong>로 스스로 한 권을 완독하는 성취감과 집중력을 기릅니다.
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* 3. 학부모 공감 솔루션 (Parent's Worry & Solution - 대화형 캐릭터 템플릿) */}
+      <section className="px-4 py-9 bg-[#F7F6F3] border-b border-stone-200/70">
+        <ParentEmpathyDialogueSection values={values} />
       </section>
 
       {/* 4. 마케팅 특화 인터랙티브 커리큘럼 탭 (모바일 최적화 UX) */}
@@ -518,10 +850,10 @@ function MobileLayout({
                 <span className="text-[11px] text-stone-400 font-semibold">1반 6명 정원</span>
               </div>
               <h4 className="text-base font-extrabold text-stone-900 mb-2">
-                그림책에서 줄글책으로, 재미있게 말하고 쓰기
+                {values["curriculum.elem_low_head"] || "그림책에서 줄글책으로, 재미있게 말하고 쓰기"}
               </h4>
-              <p className="text-xs text-stone-600 leading-relaxed mb-3.5">
-                독서에 대한 긍정적인 흥미를 키우고 어휘력을 폭넓게 확장합니다. 책을 읽은 뒤 떠오르는 느낌을 자유롭게 말하고, 짧은 문장부터 한 단락의 글을 스스로 써내는 성취감을 배웁니다.
+              <p className="text-xs text-stone-600 leading-relaxed mb-3.5 whitespace-pre-line">
+                {values["curriculum.elem_low_desc"] || "독서에 대한 긍정적인 흥미를 키우고 어휘력을 폭넓게 확장합니다. 책을 읽은 뒤 떠오르는 느낌을 자유롭게 말하고, 짧은 문장부터 한 단락의 글을 스스로 써내는 성취감을 배웁니다."}
               </p>
               <div className="space-y-1.5 text-xs text-stone-700 bg-white p-3 rounded-xl border border-stone-200/70">
                 <p className="flex items-center gap-2"><span className="text-[#EA580C] font-bold">✓</span> 책 읽는 습관 형성 및 스스로 읽기 독립</p>
@@ -540,10 +872,10 @@ function MobileLayout({
                 <span className="text-[11px] text-stone-400 font-semibold">1반 6명 정원</span>
               </div>
               <h4 className="text-base font-extrabold text-stone-900 mb-2">
-                교과 연계 배경지식과 논리적인 서술형 글쓰기
+                {values["curriculum.elem_high_head"] || "교과 연계 배경지식과 논리적인 서술형 글쓰기"}
               </h4>
-              <p className="text-xs text-stone-600 leading-relaxed mb-3.5">
-                문학 작품뿐 아니라 역사, 사회, 과학 등 교과 연계 비문학 도서를 깊이 있게 다룹니다. 서로 다른 생각을 경청하는 토론을 거쳐 논리적 근거를 갖춘 서술형 논술문을 완성합니다.
+              <p className="text-xs text-stone-600 leading-relaxed mb-3.5 whitespace-pre-line">
+                {values["curriculum.elem_high_desc"] || "문학 작품뿐 아니라 역사, 사회, 과학 등 교과 연계 비문학 도서를 깊이 있게 다룹니다. 서로 다른 생각을 경청하는 토론을 거쳐 논리적 근거를 갖춘 서술형 논술문을 완성합니다."}
               </p>
               <div className="space-y-1.5 text-xs text-stone-700 bg-white p-3 rounded-xl border border-stone-200/70">
                 <p className="flex items-center gap-2"><span className="text-[#EA580C] font-bold">✓</span> 사회·과학 교과 연계 비문학 지문 독해</p>
@@ -562,10 +894,10 @@ function MobileLayout({
                 <span className="text-[11px] text-stone-400 font-semibold">소수 정예 심화반</span>
               </div>
               <h4 className="text-base font-extrabold text-stone-900 mb-2">
-                중등 내신 만점과 수능 국어 1등급의 탄탄한 토대
+                {values["curriculum.mid_head"] || "중등 내신 만점과 수능 국어 1등급의 탄탄한 토대"}
               </h4>
-              <p className="text-xs text-stone-600 leading-relaxed mb-3.5">
-                신문 칼럼, 시사 논증, 비판적 독해를 통해 수능 국어 비문학 지문에 대비합니다. 중학교 서술형 내신 평가와 자유학기제 글쓰기 수행평가를 원장이 1:1로 밀착 지도합니다.
+              <p className="text-xs text-stone-600 leading-relaxed mb-3.5 whitespace-pre-line">
+                {values["curriculum.mid_desc"] || "신문 칼럼, 시사 논증, 비판적 독해를 통해 수능 국어 비문학 지문에 대비합니다. 중학교 서술형 내신 평가와 자유학기제 글쓰기 수행평가를 원장이 1:1로 밀착 지도합니다."}
               </p>
               <div className="space-y-1.5 text-xs text-stone-700 bg-white p-3 rounded-xl border border-stone-200/70">
                 <p className="flex items-center gap-2"><span className="text-[#EA580C] font-bold">✓</span> 중등 국어·사회 교과서 연계 심화 독해</p>
@@ -582,11 +914,17 @@ function MobileLayout({
               <span className="text-[10px] text-stone-400 font-normal">산내푸르지오 교실</span>
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl overflow-hidden aspect-[4/3] bg-stone-100 border border-stone-200/70">
+              <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-stone-100 border border-orange-200/80 shadow-xs">
                 <img src="/src/imports/curriculum2.jpg" alt="수업 모습 1" className="w-full h-full object-cover" />
+                <div className="absolute bottom-1.5 left-1.5 bg-stone-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
+                  📖 한우리 몰입 독서
+                </div>
               </div>
-              <div className="rounded-xl overflow-hidden aspect-[4/3] bg-stone-100 border border-stone-200/70">
+              <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-stone-100 border border-orange-200/80 shadow-xs">
                 <img src="/src/imports/curriculum1.jpg" alt="수업 모습 2" className="w-full h-full object-cover" />
+                <div className="absolute bottom-1.5 left-1.5 bg-stone-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
+                  ✍️ 1:1 맞춤 첨삭
+                </div>
               </div>
             </div>
           </div>
@@ -696,11 +1034,17 @@ function MobileLayout({
           </div>
 
           <div className="space-y-2.5">
-            <div className="rounded-2xl overflow-hidden border border-stone-200/80 aspect-[16/10] bg-stone-100">
+            <div className="relative rounded-2xl overflow-hidden border border-orange-200/80 aspect-[16/10] bg-stone-100 shadow-xs">
               <img src="/src/imports/classroom3.jpg" alt="교실 내부" className="w-full h-full object-cover" />
+              <div className="absolute bottom-2.5 left-2.5 bg-stone-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-lg">
+                🪵 집중을 돕는 친환경 원목 책상
+              </div>
             </div>
-            <div className="rounded-2xl overflow-hidden border border-stone-200/80 aspect-[16/10] bg-stone-100">
+            <div className="relative rounded-2xl overflow-hidden border border-orange-200/80 aspect-[16/10] bg-stone-100 shadow-xs">
               <img src="/src/imports/classroom2.jpg" alt="학원 내부 모습" className="w-full h-full object-cover" />
+              <div className="absolute bottom-2.5 left-2.5 bg-stone-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-lg">
+                📚 학년별 필독서 라이브러리
+              </div>
             </div>
           </div>
         </div>
@@ -722,12 +1066,12 @@ function MobileLayout({
                 onClick={() => setQuickFaqOpen(quickFaqOpen === 1 ? null : 1)}
                 className="w-full px-3.5 py-3 text-left flex items-center justify-between text-xs font-bold text-[#0F172A]"
               >
-                <span>Q. 한 반 인원과 수업 시간은 어떻게 되나요?</span>
+                <span>Q. {values["faq.q1"] || "한 반 인원과 수업 시간은 어떻게 되나요?"}</span>
                 <span className="text-[#EA580C]">{quickFaqOpen === 1 ? "▲" : "▼"}</span>
               </button>
               {quickFaqOpen === 1 && (
-                <div className="px-3.5 pb-3 pt-1 border-t border-stone-100 text-xs text-stone-600 leading-relaxed bg-white">
-                  한 반에 최대 6명 이하 소수 정예로 운영되며, 모든 아이가 충분히 발표하고 경청할 수 있도록 원장이 직접 지도합니다. 수업은 주 1회 80분~100분 과정으로 진행됩니다.
+                <div className="px-3.5 pb-3 pt-1 border-t border-stone-100 text-xs text-stone-600 leading-relaxed bg-white whitespace-pre-line">
+                  {values["faq.a1"] || "한 반에 최대 6명 이하 소수 정예로 운영되며, 모든 아이가 충분히 발표하고 경청할 수 있도록 원장이 직접 지도합니다. 수업은 주 1회 80분~100분 과정으로 진행됩니다."}
                 </div>
               )}
             </div>
@@ -737,12 +1081,12 @@ function MobileLayout({
                 onClick={() => setQuickFaqOpen(quickFaqOpen === 2 ? null : 2)}
                 className="w-full px-3.5 py-3 text-left flex items-center justify-between text-xs font-bold text-[#0F172A]"
               >
-                <span>Q. 책을 잘 안 읽는 아이도 적응할 수 있을까요?</span>
+                <span>Q. {values["faq.q2"] || "책을 잘 안 읽는 아이도 적응할 수 있을까요?"}</span>
                 <span className="text-[#EA580C]">{quickFaqOpen === 2 ? "▲" : "▼"}</span>
               </button>
               {quickFaqOpen === 2 && (
-                <div className="px-3.5 pb-3 pt-1 border-t border-stone-100 text-xs text-stone-600 leading-relaxed bg-white">
-                  처음부터 두꺼운 책을 강요하지 않고, 질문과 대화로 흥미를 여는 '몰입독서' 방식으로 시작합니다. 아이의 눈높이에 맞춰 성취감을 느끼도록 이끕니다.
+                <div className="px-3.5 pb-3 pt-1 border-t border-stone-100 text-xs text-stone-600 leading-relaxed bg-white whitespace-pre-line">
+                  {values["faq.a2"] || "처음부터 두꺼운 책을 강요하지 않고, 질문과 대화로 흥미를 여는 '몰입독서' 방식으로 시작합니다. 아이의 눈높이에 맞춰 성취감을 느끼도록 이끕니다."}
                 </div>
               )}
             </div>
@@ -974,19 +1318,18 @@ function PCLayout({
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-50 text-[#EA580C] text-xs font-bold border border-orange-200/80 mb-5">
               <span>✨</span>
-              <span>10년 경력 유아교육 전공 원장 직강 · 1반 6인 이하 소수 정예 몰입수업</span>
+              <span>{values["intro.badge"] || "10년 경력 유아교육 전공 원장 직강 · 1반 6인 이하 소수 정예 몰입수업"}</span>
             </div>
 
-            <h2 className="font-serif-kr text-5xl font-black text-[#0F172A] leading-[1.25] tracking-tight mb-5">
-              책을 읽는 아이에서,<br />
-              스스로 생각하고 <span className="text-[#EA580C] underline decoration-orange-200 decoration-wavy decoration-2 underline-offset-8">표현하는 아이로</span>
+            <h2 className="font-serif-kr text-5xl font-black text-[#0F172A] leading-[1.25] tracking-tight mb-5 whitespace-pre-line">
+              {values["intro.headline"] || "책을 읽는 아이에서,\n스스로 생각하고 표현하는 아이로"}
             </h2>
 
             <p className="text-xl font-medium text-stone-700 leading-relaxed mb-3">
               "{values["intro.quote"] || "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간"}"
             </p>
 
-            <p className="text-sm text-stone-500 leading-relaxed max-w-2xl mb-8">
+            <p className="text-sm text-stone-500 leading-relaxed max-w-2xl mb-8 whitespace-pre-line">
               {values["intro.sub"] || "한우리 30년 연구 커리큘럼과 10년 유아교육 전문 원장의 1:1 밀착 지도로 우리 아이 평생의 문해력과 사고력 자산을 선물합니다."}
             </p>
 
@@ -1013,95 +1356,32 @@ function PCLayout({
           <div className="grid grid-cols-4 gap-4 mt-16 pt-10 border-t border-stone-100">
             <div className="bg-[#FAFAF9] p-5 rounded-2xl border border-stone-200/80 hover:border-orange-200 transition">
               <span className="text-2xl">🎓</span>
-              <h4 className="text-sm font-extrabold text-[#0F172A] mt-2 mb-1">10년 경력 원장 직강</h4>
-              <p className="text-xs text-stone-500 leading-relaxed">유아교육 전공 및 공인 독서지도사 자격의 전문성</p>
+              <h4 className="text-sm font-extrabold text-[#0F172A] mt-2 mb-1">{values["intro.point1_title"] || "10년 경력 원장 직강"}</h4>
+              <p className="text-xs text-stone-500 leading-relaxed">{values["intro.point1_desc"] || "유아교육 전공 및 공인 독서지도사 자격의 전문성"}</p>
             </div>
             <div className="bg-[#FAFAF9] p-5 rounded-2xl border border-stone-200/80 hover:border-orange-200 transition">
               <span className="text-2xl">👥</span>
-              <h4 className="text-sm font-extrabold text-[#0F172A] mt-2 mb-1">1반 최대 6인 소수정예</h4>
-              <p className="text-xs text-stone-500 leading-relaxed">모든 아이가 자유롭게 발표하고 경청하는 토론 환경</p>
+              <h4 className="text-sm font-extrabold text-[#0F172A] mt-2 mb-1">{values["intro.point2_title"] || "1반 최대 6인 소수정예"}</h4>
+              <p className="text-xs text-stone-500 leading-relaxed">{values["intro.point2_desc"] || "모든 아이가 자유롭게 발표하고 경청하는 토론 환경"}</p>
             </div>
             <div className="bg-[#FAFAF9] p-5 rounded-2xl border border-stone-200/80 hover:border-orange-200 transition">
               <span className="text-2xl">📚</span>
-              <h4 className="text-sm font-extrabold text-[#0F172A] mt-2 mb-1">매달 새로운 필독서</h4>
-              <p className="text-xs text-stone-500 leading-relaxed">한우리 30년 연구진 엄선 교재와 밀착 몰입독서</p>
+              <h4 className="text-sm font-extrabold text-[#0F172A] mt-2 mb-1">{values["intro.point3_title"] || "매달 새로운 필독서"}</h4>
+              <p className="text-xs text-stone-500 leading-relaxed">{values["intro.point3_desc"] || "한우리 30년 연구진 엄선 교재와 밀착 몰입독서"}</p>
             </div>
             <div className="bg-[#FAFAF9] p-5 rounded-2xl border border-stone-200/80 hover:border-orange-200 transition">
               <span className="text-2xl">✍️</span>
-              <h4 className="text-sm font-extrabold text-[#0F172A] mt-2 mb-1">1:1 맞춤 글쓰기 첨삭</h4>
-              <p className="text-xs text-stone-500 leading-relaxed">개별 피드백과 누적 포트폴리오로 성장 기록 관리</p>
+              <h4 className="text-sm font-extrabold text-[#0F172A] mt-2 mb-1">{values["intro.point4_title"] || "1:1 맞춤 글쓰기 첨삭"}</h4>
+              <p className="text-xs text-stone-500 leading-relaxed">{values["intro.point4_desc"] || "개별 피드백과 누적 포트폴리오로 성장 기록 관리"}</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. 학부모 공감 섹션 (Parent Empathy & Solution - 주황색 통일) */}
+      {/* 3. 학부모 공감 섹션 (Parent Empathy & Solution - 대화형 캐릭터 템플릿) */}
       <section className="py-20 bg-[#F7F6F3] border-b border-stone-200/70">
         <div className="max-w-6xl mx-auto px-8">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <p className="text-xs font-bold text-[#EA580C] uppercase tracking-wider mb-2">Parent's Worry & Solution</p>
-            <h3 className="font-serif-kr text-3xl font-black text-[#0F172A] leading-snug">
-              학부모님, 요즘 우리 아이 독서에<br />
-              이런 고민이 있으신가요?
-            </h3>
-            <p className="text-sm text-stone-500 mt-2">단순한 읽기를 넘어 생각과 글이 자라나는 체계적인 해답을 드립니다.</p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-6">
-            <div className="bg-white p-7 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
-              <div>
-                <span className="inline-block text-xs font-bold px-2.5 py-1 rounded bg-orange-50 text-[#EA580C] border border-orange-200/80 mb-3">고민 01</span>
-                <h4 className="font-bold text-base text-stone-900 mb-2 leading-snug">
-                  "책은 많이 읽는데, 줄거리나 생각을 물어보면 머뭇거려요."
-                </h4>
-                <p className="text-xs text-stone-500 leading-relaxed">
-                  활자만 스치는 수동적 독서에 익숙해져 내 생각으로 소화하는 과정을 경험하지 못했기 때문입니다.
-                </p>
-              </div>
-              <div className="mt-5 pt-4 border-t border-stone-100 bg-orange-50/50 p-3.5 rounded-xl border border-orange-100/70">
-                <p className="text-xs font-bold text-[#EA580C]">✦ 한우리의 솔루션</p>
-                <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                  질문을 던지고 토론하는 <strong>'생각 열기 수업'</strong>으로 수동적 읽기를 능동적 사고와 말하기로 이끕니다.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-7 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
-              <div>
-                <span className="inline-block text-xs font-bold px-2.5 py-1 rounded bg-orange-50 text-[#EA580C] border border-orange-200/80 mb-3">고민 02</span>
-                <h4 className="font-bold text-base text-stone-900 mb-2 leading-snug">
-                  "고학년, 중학교 서술형 평가와 긴 지문 독해를 버거워할까 봐요."
-                </h4>
-                <p className="text-xs text-stone-500 leading-relaxed">
-                  문학 위주의 읽기만으로는 교과 과정의 다양한 비문학 지문과 논리적 작문 요구를 감당하기 어렵습니다.
-                </p>
-              </div>
-              <div className="mt-5 pt-4 border-t border-stone-100 bg-orange-50/50 p-3.5 rounded-xl border border-orange-100/70">
-                <p className="text-xs font-bold text-[#EA580C]">✦ 한우리의 솔루션</p>
-                <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                  문학·비문학·시사 칼럼을 고루 다루며 <strong>수능 국어와 내신 서술형의 튼튼한 토대</strong>를 미리 다집니다.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-7 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
-              <div>
-                <span className="inline-block text-xs font-bold px-2.5 py-1 rounded bg-orange-50 text-[#EA580C] border border-orange-200/80 mb-3">고민 03</span>
-                <h4 className="font-bold text-base text-stone-900 mb-2 leading-snug">
-                  "스마트폰과 숏폼에 익숙해져 한 권을 끝까지 읽지 못해요."
-                </h4>
-                <p className="text-xs text-stone-500 leading-relaxed">
-                  자극적인 짧은 콘텐츠로 인해 긴 호흡의 글을 참고 완독하는 뇌의 집중 근력이 약해져 있습니다.
-                </p>
-              </div>
-              <div className="mt-5 pt-4 border-t border-stone-100 bg-orange-50/50 p-3.5 rounded-xl border border-orange-100/70">
-                <p className="text-xs font-bold text-[#EA580C]">✦ 한우리의 솔루션</p>
-                <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                  선생님이 전 과정을 밀착 지도하는 <strong>'몰입독서'</strong>로 한 권을 스스로 완독하는 성취감을 길러줍니다.
-                </p>
-              </div>
-            </div>
-          </div>
+          <ParentEmpathyDialogueSection values={values} />
         </div>
       </section>
 
@@ -1296,11 +1576,17 @@ function PCLayout({
               <span className="text-xs text-stone-400">파주운정 산내푸르지오 교습소</span>
             </div>
             <div className="grid grid-cols-2 gap-6">
-              <div className="rounded-2xl overflow-hidden aspect-[16/10] bg-stone-100 border border-stone-200 group">
+              <div className="relative rounded-2xl overflow-hidden aspect-[16/10] bg-stone-100 border border-orange-200/80 shadow-xs group">
                 <img src="/src/imports/curriculum2.jpg" alt="수업 모습 1" className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500" />
+                <div className="absolute bottom-3 left-3 bg-stone-900/80 backdrop-blur-xs text-white text-xs font-bold px-3 py-1.5 rounded-xl">
+                  📖 한우리 몰입 독서 & 토론 현장
+                </div>
               </div>
-              <div className="rounded-2xl overflow-hidden aspect-[16/10] bg-stone-100 border border-stone-200 group">
+              <div className="relative rounded-2xl overflow-hidden aspect-[16/10] bg-stone-100 border border-orange-200/80 shadow-xs group">
                 <img src="/src/imports/curriculum1.jpg" alt="수업 모습 2" className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500" />
+                <div className="absolute bottom-3 left-3 bg-stone-900/80 backdrop-blur-xs text-white text-xs font-bold px-3 py-1.5 rounded-xl">
+                  ✍️ 1:1 맞춤 글쓰기 첨삭 지도
+                </div>
               </div>
             </div>
           </div>
@@ -1319,11 +1605,17 @@ function PCLayout({
           </div>
 
           <div className="grid grid-cols-2 gap-8">
-            <div className="rounded-3xl overflow-hidden border border-stone-200 aspect-[16/11] bg-stone-100 group">
+            <div className="relative rounded-3xl overflow-hidden border border-orange-200/80 aspect-[16/11] bg-stone-100 shadow-xs group">
               <img src="/src/imports/classroom3.jpg" alt="교실 내부 모습" className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500" />
+              <div className="absolute bottom-4 left-4 bg-stone-900/80 backdrop-blur-xs text-white text-xs font-bold px-3.5 py-1.5 rounded-xl">
+                🪵 집중을 돕는 친환경 원목 책상
+              </div>
             </div>
-            <div className="rounded-3xl overflow-hidden border border-stone-200 aspect-[16/11] bg-stone-100 group">
+            <div className="relative rounded-3xl overflow-hidden border border-orange-200/80 aspect-[16/11] bg-stone-100 shadow-xs group">
               <img src="/src/imports/classroom2.jpg" alt="학원 내부 모습" className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500" />
+              <div className="absolute bottom-4 left-4 bg-stone-900/80 backdrop-blur-xs text-white text-xs font-bold px-3.5 py-1.5 rounded-xl">
+                📚 학년별 필독서 라이브러리
+              </div>
             </div>
           </div>
           <p className="text-center text-xs text-stone-500 mt-6">
@@ -1748,99 +2040,140 @@ function ReviewPage({ onBack, reviews }: { onBack: () => void; reviews: Review[]
   );
 }
 
-function QnaPage({ onBack, items }: { onBack: () => void; items?: QnaItem[] }) {
+function QnaPage({ onBack, items, values }: { onBack: () => void; items?: QnaItem[]; values?: Record<string, string> }) {
+  const [viewMode, setViewMode] = useState<"dialogue" | "compact">("dialogue");
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const list = items ?? QNA_LIST;
+  const kakaoUrl = values?.["contact.kakao"] || "http://pf.kakao.com/_xxxxxx";
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
-    <div style={{ wordBreak: "keep-all" }} className="min-h-screen bg-[#FAFAF9] text-[#0F172A]">
+    <div style={{ wordBreak: "keep-all" }} className="min-h-screen bg-[#F7F6F3] text-[#0F172A]">
       {/* 헤더 */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs">
         <div className="max-w-3xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between gap-4">
           <div className="flex flex-col justify-center">
-            <h1 className="font-serif-kr text-base md:text-lg font-black text-[#0F172A] leading-tight">자주 묻는 질문</h1>
-            <p className="text-[11px] text-stone-500 mt-0.5">파주운정 산내푸르지오 교실 학부모 안내</p>
+            <h1 className="font-serif-kr text-base md:text-lg font-black text-[#0F172A] leading-tight">
+              {values?.["header.title"] || "한우리 독서토론논술"} 자주 묻는 질문
+            </h1>
+            <p className="text-[11px] text-stone-500 mt-0.5">
+              {values?.["header.subtitle"] || "파주운정 산내푸르지오 교실"} 학부모 안내
+            </p>
           </div>
-          <button
-            onClick={onBack}
-            className="shrink-0 flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold px-3.5 py-2 rounded-xl border border-stone-200/80 transition active:scale-95"
-          >
-            ← 홈으로
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex bg-stone-100 p-1 rounded-xl border border-stone-200/80">
+              <button
+                onClick={() => setViewMode("dialogue")}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+                  viewMode === "dialogue" ? "bg-white text-[#EA580C] shadow-2xs" : "text-stone-500 hover:text-stone-800"
+                }`}
+              >
+                💬 대화형
+              </button>
+              <button
+                onClick={() => setViewMode("compact")}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+                  viewMode === "compact" ? "bg-white text-[#EA580C] shadow-2xs" : "text-stone-500 hover:text-stone-800"
+                }`}
+              >
+                📋 요약형
+              </button>
+            </div>
+            <button
+              onClick={onBack}
+              className="shrink-0 flex items-center gap-1.5 bg-white hover:bg-stone-100 text-stone-800 text-xs font-bold px-3.5 py-2 rounded-xl border border-stone-200/80 transition active:scale-95 shadow-2xs"
+            >
+              ← 홈으로
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-5 md:px-8 py-8 md:py-12">
-        {/* 안내 배너 */}
-        <div className="bg-white border border-stone-200/90 rounded-3xl p-6 md:p-8 mb-8 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <span className="inline-block text-xs font-bold text-[#EA580C] uppercase tracking-wider mb-1">
-              Frequently Asked Questions
-            </span>
-            <h2 className="font-serif-kr text-xl font-black text-[#0F172A]">
-              학부모님께서 가장 많이 주신 질문
-            </h2>
-            <p className="text-xs text-stone-500 mt-1">
-              수업 커리큘럼, 소수 정예 원장 직강, 입회 절차에 대한 모든 것
-            </p>
-          </div>
+      <main className="max-w-3xl mx-auto px-4 md:px-8 py-8 md:py-12">
+        {/* 상단 액자형 방사 배너 */}
+        <div className="bg-white border-2 border-[#0F172A] rounded-3xl p-6 md:p-8 mb-8 shadow-xs text-center relative overflow-hidden">
+          <div className="absolute inset-1.5 md:inset-2.5 rounded-[20px] md:rounded-[22px] border border-[#BAE6FD]/60 pointer-events-none" />
+          
+          <QnASparkleHeader
+            title="Q & A"
+            subtitle="학부모님께서 가장 많이 주신 질문과 원장님의 1:1 맞춤 교육 해답"
+          />
+
+          <p className="text-xs md:text-sm text-stone-600 max-w-lg mx-auto leading-relaxed mt-1 mb-5">
+            수업 커리큘럼, 소수 정예 원장 직강, 입회 절차에 대해 궁금하신 점을 대화 형식으로 쉽게 풀어드렸습니다.
+          </p>
+
           <a
-            href="http://pf.kakao.com/_xxxxxx"
+            href={kakaoUrl}
             target="_blank"
             rel="noreferrer"
-            className="shrink-0 inline-flex items-center gap-1.5 bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-bold px-4 py-2.5 rounded-xl transition active:scale-95 shadow-xs"
+            className="inline-flex items-center gap-2 bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs md:text-sm font-bold px-5 py-2.5 rounded-xl transition active:scale-95 shadow-xs"
           >
             <span>💬</span>
-            <span>1:1 빠른 상담</span>
+            <span>카카오톡 1:1 빠른 상담하기</span>
           </a>
         </div>
 
-        {/* 아코디언 */}
-        <div className="space-y-3">
-          {list.map((item, idx) => (
-            <div
-              key={idx}
-              className="bg-white border border-stone-200/80 rounded-2xl overflow-hidden shadow-xs hover:border-orange-200 transition-all duration-200"
-            >
-              <button
-                onClick={() => setOpenIdx(openIdx === idx ? null : idx)}
-                className="w-full text-left px-5 md:px-6 py-5 flex items-start gap-3.5 cursor-pointer"
+        {/* 1. 대화형 뷰 (참고 이미지 완벽 재현 템플릿) */}
+        {viewMode === "dialogue" ? (
+          <div className="space-y-6">
+            {list.map((item, idx) => (
+              <ConversationalDialogueCard
+                key={idx}
+                tag={`질문 0${idx + 1}`}
+                question={item.q}
+                answerHtml={item.a.replace(/\n\n/g, "<br><br>")}
+                badgeText="원장 직강 교육 가이드"
+              />
+            ))}
+          </div>
+        ) : (
+          /* 2. 요약 아코디언 뷰 */
+          <div className="space-y-3">
+            {list.map((item, idx) => (
+              <div
+                key={idx}
+                className="bg-white border border-stone-200/80 rounded-2xl overflow-hidden shadow-xs hover:border-orange-200 transition-all duration-200"
               >
-                <span className="shrink-0 w-7 h-7 rounded-lg bg-orange-100 text-[#EA580C] text-xs font-black flex items-center justify-center mt-0.5">
-                  Q
-                </span>
-                <span className="flex-1 font-bold text-[#0F172A] text-sm md:text-base leading-snug">
-                  {item.q}
-                </span>
-                <span
-                  className={`shrink-0 w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 text-xs transition-transform duration-200 ${
-                    openIdx === idx ? "rotate-180 bg-orange-100 text-[#EA580C]" : ""
-                  }`}
+                <button
+                  onClick={() => setOpenIdx(openIdx === idx ? null : idx)}
+                  className="w-full text-left px-5 md:px-6 py-5 flex items-start gap-3.5 cursor-pointer"
                 >
-                  ▼
-                </span>
-              </button>
-              {openIdx === idx && (
-                <div className="px-5 md:px-6 pb-6 pt-3 border-t border-stone-100 bg-[#FAF9F6]">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="w-6 h-6 rounded-lg bg-[#EA580C] text-white text-xs font-black flex items-center justify-center shrink-0">
-                      A
-                    </span>
-                    <span className="text-xs font-bold text-[#EA580C]">원장 직강 교육 가이드</span>
+                  <span className="shrink-0 w-7 h-7 rounded-lg bg-orange-100 text-[#EA580C] text-xs font-black flex items-center justify-center mt-0.5">
+                    Q
+                  </span>
+                  <span className="flex-1 font-bold text-[#0F172A] text-sm md:text-base leading-snug">
+                    {item.q}
+                  </span>
+                  <span
+                    className={`shrink-0 w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 text-xs transition-transform duration-200 ${
+                      openIdx === idx ? "rotate-180 bg-orange-100 text-[#EA580C]" : ""
+                    }`}
+                  >
+                    ▼
+                  </span>
+                </button>
+                {openIdx === idx && (
+                  <div className="px-5 md:px-6 pb-6 pt-3 border-t border-stone-100 bg-[#FAF9F6]">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-6 h-6 rounded-lg bg-[#EA580C] text-white text-xs font-black flex items-center justify-center shrink-0">
+                        A
+                      </span>
+                      <span className="text-xs font-bold text-[#EA580C]">원장 직강 교육 가이드</span>
+                    </div>
+                    <div
+                      className="text-xs md:text-sm text-stone-600 leading-relaxed [&_img]:w-full [&_img]:rounded-xl [&_img]:mt-3 [&_strong]:text-[#0F172A] [&_strong]:font-bold"
+                      dangerouslySetInnerHTML={{ __html: item.a.replace(/\n\n/g, "<br><br>") }}
+                    />
                   </div>
-                  <div
-                    className="text-xs md:text-sm text-stone-600 leading-relaxed [&_img]:w-full [&_img]:rounded-xl [&_img]:mt-3 [&_strong]:text-[#0F172A] [&_strong]:font-bold"
-                    dangerouslySetInnerHTML={{ __html: item.a.replace(/\n\n/g, "<br><br>") }}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* CTA */}
+        {/* 하단 CTA */}
         <div className="mt-10 bg-white border border-orange-200/80 rounded-3xl p-8 text-center shadow-xs">
           <p className="text-xs font-bold text-[#EA580C] uppercase tracking-wider mb-1">Direct Consultation</p>
           <h3 className="font-serif-kr text-lg font-black text-[#0F172A] mb-2">
@@ -1850,7 +2183,7 @@ function QnaPage({ onBack, items }: { onBack: () => void; items?: QnaItem[] }) {
             수업 중일 때는 전화 통화가 어려울 수 있으니, 카카오톡으로 아이 학년과 함께 문의 남겨주시면 정성껏 답변드리겠습니다.
           </p>
           <a
-            href="http://pf.kakao.com/_xxxxxx"
+            href={kakaoUrl}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 bg-[#EA580C] hover:bg-[#C2410C] text-white font-bold text-sm px-8 py-3.5 rounded-2xl shadow-sm transition-all hover:-translate-y-0.5 active:scale-95"
@@ -1861,7 +2194,9 @@ function QnaPage({ onBack, items }: { onBack: () => void; items?: QnaItem[] }) {
       </main>
 
       <footer className="bg-[#0F172A] text-stone-400 text-xs text-center py-8 px-5 leading-relaxed border-t border-stone-800">
-        <p className="font-semibold text-stone-300">한우리 독서토론논술 파주운정 산내푸르지오 독서교실</p>
+        <p className="font-semibold text-stone-300">
+          {values?.["header.title"] || "한우리 독서토론논술"} {values?.["header.subtitle"] || "파주운정 산내푸르지오 독서교실"}
+        </p>
         <p className="text-[11px] text-stone-500 mt-1">교육상담 및 문의 · 원장 직접 지도 · 교습소 번호 등록 완료</p>
       </footer>
     </div>
@@ -3728,7 +4063,7 @@ export default function App() {
         if (footer) handleFooterClick();
       }}>
         {page === "qna"
-          ? <QnaPage onBack={() => { setPage("home"); window.scrollTo(0, 0); }} items={liveQna} />
+          ? <QnaPage onBack={() => { setPage("home"); window.scrollTo(0, 0); }} items={liveQna} values={siteValues} />
           : page === "reviews"
             ? <ReviewPage onBack={() => { setPage("home"); window.scrollTo(0, 0); }} reviews={liveReviews} />
             : isMobile
