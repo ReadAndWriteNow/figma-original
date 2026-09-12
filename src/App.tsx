@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import hanwooriSymbolPng from "./imports/image-1.png";
+import logoImg from "./imports/logo.png";
 import {
   getSanityConfig,
   saveLocalSanityConfig,
@@ -692,8 +692,6 @@ function renderFormattedHeadline(text: string) {
 /* ─── 한우리 공식 브랜드 로고 컴포넌트 (심볼 좌측 전용 배치 & 1:1 비율 보장) ─── */
 function HanwooriLogo({
   subtitle = "파주운정 산내푸르지오 독서교실",
-  customLogoUrl = "",
-  customSymbolUrl = "",
   size = "md",
 }: {
   subtitle?: string;
@@ -705,94 +703,77 @@ function HanwooriLogo({
 }) {
   const isSm = size === "sm";
   const isLg = size === "lg";
-  const symbolSrc = customSymbolUrl || hanwooriSymbolPng;
 
   return (
     <div className="relative inline-flex items-center">
-      {customLogoUrl ? (
-        /* 사용자가 첨부한 전체 로고 이미지 (무왜곡, 원본 비율 100% 보장) */
-        <div className="flex items-center gap-2 md:gap-3 select-none">
+      {/* 기본 브랜드 레이아웃: 좌측 심볼 박스 (logo.png) + 우측 텍스트 */}
+      <div className="flex items-center gap-2 md:gap-2.5 select-none">
+        {/* 1. 오렌지 생각풍선 심볼 박스 (logo.png 직접 출력) */}
+        <div
+          className={
+            isSm
+              ? "w-7 h-7 shrink-0 aspect-square flex items-center justify-center"
+              : isLg
+              ? "w-11 h-11 shrink-0 aspect-square flex items-center justify-center"
+              : "w-8.5 h-8.5 md:w-9.5 md:h-9.5 shrink-0 aspect-square flex items-center justify-center"
+          }
+        >
           <img
-            src={customLogoUrl}
-            alt="한우리 독서토론논술"
-            className={
-              isSm
-                ? "max-h-8 w-auto object-contain"
-                : isLg
-                ? "max-h-14 w-auto object-contain"
-                : "max-h-10 md:max-h-11 w-auto object-contain"
-            }
+            src={logoImg || "/logo.png"}
+            alt="한우리 심볼"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.src.endsWith("/logo.png") && !target.src.endsWith("/hanwoori-symbol.svg")) {
+                target.src = "/logo.png";
+              }
+            }}
+            className="w-full h-full object-contain aspect-square"
           />
-          {subtitle && (
-            <span className="text-[10px] md:text-xs font-bold text-stone-500 tracking-tight">
-              {subtitle}
+        </div>
+
+        {/* 2. 브랜드명 & 지점명 (높이 정렬) */}
+        <div className="flex flex-col justify-center">
+          <div className="flex items-baseline leading-none">
+            <span
+              className={
+                isSm
+                  ? "font-extrabold text-[#383838] text-[15px] tracking-tight font-sans"
+                  : isLg
+                  ? "font-extrabold text-[#383838] text-[22px] tracking-tight font-sans"
+                  : "font-extrabold text-[#383838] text-[16px] md:text-[19px] tracking-tight font-sans"
+              }
+            >
+              한우리
             </span>
+            <span
+              className={
+                isSm
+                  ? "font-bold text-[#686868] text-[11px] tracking-tight font-sans ml-1"
+                  : isLg
+                  ? "font-bold text-[#686868] text-[15px] tracking-tight font-sans ml-1.5"
+                  : "font-bold text-[#686868] text-[12px] md:text-[14px] tracking-tight font-sans ml-1 md:ml-1.5"
+              }
+            >
+              독서토론논술
+            </span>
+          </div>
+
+          {/* 지점 서브텍스트 */}
+          {subtitle && (
+            <p
+              className={
+                isSm
+                  ? "text-[9.5px] font-medium text-stone-500 mt-0.5 tracking-tight leading-none"
+                  : isLg
+                  ? "text-[12px] font-medium text-stone-500 mt-1 tracking-tight leading-none"
+                  : "text-[10px] md:text-[11px] font-medium text-stone-500 mt-0.5 md:mt-1 tracking-tight leading-none"
+              }
+            >
+              {subtitle}
+            </p>
           )}
         </div>
-      ) : (
-        /* 기본 브랜드 레이아웃: 좌측 심볼 박스 + 우측 텍스트 */
-        <div className="flex items-center gap-2 md:gap-2.5 select-none">
-          {/* 1. 오렌지 생각풍선 심볼 전용 박스 (정확한 1:1 비율 및 글자 높이 정렬) */}
-          <div
-            className={
-              isSm
-                ? "w-7 h-7 shrink-0 aspect-square flex items-center justify-center"
-                : isLg
-                ? "w-11 h-11 shrink-0 aspect-square flex items-center justify-center"
-                : "w-8.5 h-8.5 md:w-9.5 md:h-9.5 shrink-0 aspect-square flex items-center justify-center"
-            }
-          >
-            <img
-              src={symbolSrc}
-              alt="한우리 심볼"
-              className="w-full h-full object-contain aspect-square"
-            />
-          </div>
-
-          {/* 2. 브랜드명 & 지점명 (높이 정렬) */}
-          <div className="flex flex-col justify-center">
-            <div className="flex items-baseline leading-none">
-              <span
-                className={
-                  isSm
-                    ? "font-extrabold text-[#383838] text-[15px] tracking-tight font-sans"
-                    : isLg
-                    ? "font-extrabold text-[#383838] text-[22px] tracking-tight font-sans"
-                    : "font-extrabold text-[#383838] text-[16px] md:text-[19px] tracking-tight font-sans"
-                }
-              >
-                한우리
-              </span>
-              <span
-                className={
-                  isSm
-                    ? "font-bold text-[#686868] text-[11px] tracking-tight font-sans ml-1"
-                    : isLg
-                    ? "font-bold text-[#686868] text-[15px] tracking-tight font-sans ml-1.5"
-                    : "font-bold text-[#686868] text-[12px] md:text-[14px] tracking-tight font-sans ml-1 md:ml-1.5"
-                }
-              >
-                독서토론논술
-              </span>
-            </div>
-
-            {/* 지점 서브텍스트 */}
-            {subtitle && (
-              <p
-                className={
-                  isSm
-                    ? "text-[9.5px] font-medium text-stone-500 mt-0.5 tracking-tight leading-none"
-                    : isLg
-                    ? "text-[12px] font-medium text-stone-500 mt-1 tracking-tight leading-none"
-                    : "text-[10px] md:text-[11px] font-medium text-stone-500 mt-0.5 md:mt-1 tracking-tight leading-none"
-                }
-              >
-                {subtitle}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -827,15 +808,12 @@ function MobileLayout({
   return (
     <div style={{ wordBreak: "keep-all" }} className="min-h-screen bg-[#FAFAF9] text-[#0F172A] pb-22">
 
-      {/* 1. 상단 고정 모바일 헤더 (공식 로고 & 서브타이틀 & 내 사진 첨부) */}
+      {/* 1. 상단 고정 모바일 헤더 */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 px-3.5 py-2.5 shadow-xs">
         <div className="flex items-center justify-between">
           <HanwooriLogo
             subtitle={values["header.subtitle"] || "파주운정 산내푸르지오 독서교실"}
-            customLogoUrl={values["header.logoUrl"]}
-            customSymbolUrl={values["header.symbolUrl"]}
             size="sm"
-            onUpdateValues={onValuesChange}
           />
           
           <div className="flex items-center gap-1.5 shrink-0">
@@ -1444,10 +1422,7 @@ function PCLayout({
           <div className="mr-8 lg:mr-12">
             <HanwooriLogo
               subtitle={values["header.subtitle"] || "파주운정 산내푸르지오 독서교실"}
-              customLogoUrl={values["header.logoUrl"]}
-              customSymbolUrl={values["header.symbolUrl"]}
               size="md"
-              onUpdateValues={onValuesChange}
             />
           </div>
 
@@ -2407,8 +2382,6 @@ const SECTIONS = [
     fields: [
       { key: "title",    label: "메인 제목",  type: "text",     defaultValue: "한우리 독서토론논술" },
       { key: "subtitle", label: "부제목(지점명)", type: "text",     defaultValue: "파주운정 산내푸르지오 독서교실" },
-      { key: "symbolUrl", label: "심볼 그림 사진 직접 첨부 (좌측 오렌지 심볼만 내 사진으로 교체)", type: "image", defaultValue: "" },
-      { key: "logoUrl",  label: "전체 로고 사진 직접 첨부 (글자 포함 전체를 내 사진으로 교체)", type: "image", defaultValue: "" },
     ],
   },
   {
