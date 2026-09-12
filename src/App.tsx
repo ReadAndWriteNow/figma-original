@@ -21,16 +21,37 @@ import {
 const DEFAULT_VALUES: Record<string, string> = {
   "header.title": "한우리 독서토론논술",
   "header.subtitle": "파주운정 산내푸르지오 독서교실",
+  "intro.badge": "파주운정 산내푸르지오 · 10년 원장 직강 소수정예",
+  "intro.headline": "스마트폰에 빼앗긴 문해력,\n스스로 생각하고 표현하는 아이로",
   "intro.quote": "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간",
   "intro.sub": "스스로 생각의 씨앗을 틔울 수 있도록 돕습니다.",
+  "intro.point1_title": "10년 원장 직강",
+  "intro.point1_desc": "보조강사 없이 직접 지도",
+  "intro.point2_title": "1반 최대 6명",
+  "intro.point2_desc": "발표 & 토론 기회 보장",
+  "intro.point3_title": "매월 새 필독서",
+  "intro.point3_desc": "교과연계 한우리 30년",
+  "intro.point4_title": "1:1 맞춤 첨삭",
+  "intro.point4_desc": "정기 포트폴리오 관리",
   "about.slogan": "생각하는 힘이 아이의 미래를 바꿉니다",
   "about.name": "원장 이해옥",
   "about.career": "독서토론논술 교습소 운영 (10년 경력)\n해법·한우리 독서토론교습소 운영\n독서지도사 자격 보유",
   "about.desc": "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다.",
+  "about.letter": "제 아이를 책으로 키우며 느꼈던 배움의 감동을 우리 지역 아이들에게 전하고자 시작한 지 10년이 되었습니다. 성급하게 재촉하지 않고, 아이마다 다른 생각의 보폭을 따뜻하게 지켜보겠습니다.",
   "curriculum.elem_title": "저학년 / 고학년",
   "curriculum.elem_body": "그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행.",
   "curriculum.mid_title": "내신 및 심화 논술",
   "curriculum.mid_body": "비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성.",
+  "curriculum.elem_low_head": "그림책에서 줄글책으로, 재미있게 말하고 쓰기",
+  "curriculum.elem_low_desc": "독서에 대한 긍정적인 흥미를 키우고 어휘력을 폭넓게 확장합니다. 책을 읽은 뒤 떠오르는 느낌을 자유롭게 말하고, 짧은 문장부터 한 단락의 글을 스스로 써내는 성취감을 배웁니다.",
+  "curriculum.elem_high_head": "교과 연계 배경지식과 논리적인 서술형 글쓰기",
+  "curriculum.elem_high_desc": "문학 작품뿐 아니라 역사, 사회, 과학 등 교과 연계 비문학 도서를 깊이 있게 다룹니다. 서로 다른 생각을 경청하는 토론을 거쳐 논리적 근거를 갖춘 서술형 논술문을 완성합니다.",
+  "curriculum.mid_head": "중등 내신 만점과 수능 국어 1등급의 탄탄한 토대",
+  "curriculum.mid_desc": "신문 칼럼, 시사 논증, 비판적 독해를 통해 수능 국어 비문학 지문에 대비합니다. 중학교 서술형 내신 평가와 자유학기제 글쓰기 수행평가를 원장이 1:1로 밀착 지도합니다.",
+  "faq.q1": "한 반 인원과 수업 시간은 어떻게 되나요?",
+  "faq.a1": "한 반에 최대 6명 이하 소수 정예로 운영되며, 모든 아이가 충분히 발표하고 경청할 수 있도록 원장이 직접 지도합니다. 수업은 주 1회 80분~100분 과정으로 진행됩니다.",
+  "faq.q2": "책을 잘 안 읽는 아이도 적응할 수 있을까요?",
+  "faq.a2": "처음부터 두꺼운 책을 강요하지 않고, 질문과 대화로 흥미를 여는 '몰입독서' 방식으로 시작합니다. 아이의 눈높이에 맞춰 성취감을 느끼도록 이끕니다.",
   "info.hours": "평일 14:00 ~ 20:00 (주말 및 공휴일 휴무)",
   "info.address": "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호",
   "info.parking": "건물 뒷편 주차장 이용 가능",
@@ -597,11 +618,11 @@ function MobileLayout({
             </p>
 
             <div className="text-xs text-stone-600 leading-relaxed space-y-2 mb-3.5">
-              <p>
+              <p className="whitespace-pre-line">
                 {values["about.desc"] || "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다."}
               </p>
-              <div className="bg-[#FAF9F6] p-3 rounded-xl border border-stone-200/70 text-stone-700 italic text-[11px]">
-                "제 아이를 책으로 키우며 느꼈던 배움의 감동을 우리 지역 아이들에게 전하고자 시작한 지 10년이 되었습니다. 성급하게 재촉하지 않고, 아이마다 다른 생각의 보폭을 따뜻하게 지켜보겠습니다."
+              <div className="bg-[#FAF9F6] p-3 rounded-xl border border-stone-200/70 text-stone-700 italic text-[11px] whitespace-pre-line">
+                "{values["about.letter"] || "제 아이를 책으로 키우며 느꼈던 배움의 감동을 우리 지역 아이들에게 전하고자 시작한 지 10년이 되었습니다. 성급하게 재촉하지 않고, 아이마다 다른 생각의 보폭을 따뜻하게 지켜보겠습니다."}"
               </div>
             </div>
 
@@ -1109,9 +1130,9 @@ function PCLayout({
                 <p>
                   {values["about.desc"] || "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다."}
                 </p>
-                <div className="bg-white/90 p-5 rounded-2xl border border-stone-200/80 font-medium text-stone-700 leading-relaxed italic shadow-2xs">
-                  "제 아이를 책으로 키우며 느꼈던 배움의 감동을 우리 지역 아이들에게 전하고자 시작한 지 어느덧 10년이 되었습니다.
-                  성급하게 재촉하지 않고, 아이마다 다른 생각의 보폭을 따뜻한 시선으로 지켜보며 평생의 문해력과 표현력을 선물하겠습니다."
+                <div className="bg-white/90 p-5 rounded-2xl border border-stone-200/80 font-medium text-stone-700 leading-relaxed italic shadow-2xs whitespace-pre-line">
+                  "{values["about.letter"] || `제 아이를 책으로 키우며 느꼈던 배움의 감동을 우리 지역 아이들에게 전하고자 시작한 지 어느덧 10년이 되었습니다.
+                  성급하게 재촉하지 않고, 아이마다 다른 생각의 보폭을 따뜻한 시선으로 지켜보며 평생의 문해력과 표현력을 선물하겠습니다.`}"
                 </div>
               </div>
 
@@ -1872,32 +1893,58 @@ const SECTIONS = [
     ],
   },
   {
-    id: "intro", label: "인트로 문구",
+    id: "intro", label: "히어로 & 4대 안심 포인트",
     fields: [
-      { key: "quote", label: "인용 문구", type: "text",     defaultValue: "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간" },
-      { key: "sub",   label: "보조 문구", type: "text",     defaultValue: "스스로 생각의 씨앗을 틔울 수 있도록 돕습니다." },
+      { key: "badge",    label: "상단 타깃 뱃지", type: "text",     defaultValue: "파주운정 산내푸르지오 · 10년 원장 직강 소수정예" },
+      { key: "headline", label: "메인 헤드라인 (줄바꿈 가능)", type: "textarea", defaultValue: "스마트폰에 빼앗긴 문해력,\n스스로 생각하고 표현하는 아이로" },
+      { key: "quote",    label: "인용 문구",     type: "text",     defaultValue: "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간" },
+      { key: "sub",      label: "보조 문구",     type: "text",     defaultValue: "스스로 생각의 씨앗을 틔울 수 있도록 돕습니다." },
+      { key: "point1_title", label: "1번째 안심 포인트 제목", type: "text", defaultValue: "10년 원장 직강" },
+      { key: "point1_desc",  label: "1번째 안심 포인트 설명", type: "text", defaultValue: "보조강사 없이 직접 지도" },
+      { key: "point2_title", label: "2번째 안심 포인트 제목", type: "text", defaultValue: "1반 최대 6명" },
+      { key: "point2_desc",  label: "2번째 안심 포인트 설명", type: "text", defaultValue: "발표 & 토론 기회 보장" },
+      { key: "point3_title", label: "3번째 안심 포인트 제목", type: "text", defaultValue: "매월 새 필독서" },
+      { key: "point3_desc",  label: "3번째 안심 포인트 설명", type: "text", defaultValue: "교과연계 한우리 30년" },
+      { key: "point4_title", label: "4번째 안심 포인트 제목", type: "text", defaultValue: "1:1 맞춤 첨삭" },
+      { key: "point4_desc",  label: "4번째 안심 포인트 설명", type: "text", defaultValue: "정기 포트폴리오 관리" },
     ],
   },
   {
-    id: "about", label: "원장 소개",
+    id: "about", label: "원장 소개 & 교육 철학",
     fields: [
       { key: "slogan", label: "슬로건",    type: "text",     defaultValue: "생각하는 힘이 아이의 미래를 바꿉니다" },
       { key: "name",   label: "원장 이름", type: "text",     defaultValue: "원장 이해옥" },
       { key: "career", label: "경력 (줄바꿈으로 구분)", type: "textarea", defaultValue: "독서토론논술 교습소 운영 (10년 경력)\n해법·한우리 독서토론교습소 운영\n독서지도사 자격 보유" },
-      { key: "desc",   label: "교육 철학", type: "textarea", defaultValue: "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다." },
+      { key: "desc",   label: "교육 철학 요약", type: "textarea", defaultValue: "단순히 책을 읽고 글을 쓰는 것을 넘어, 아이들이 스스로 생각하고 질문하는 힘을 길러주는 것을 교육 철학으로 삼고 있습니다." },
+      { key: "letter", label: "원장 진심의 편지 (에디토리얼 서신)", type: "textarea", defaultValue: "제 아이를 책으로 키우며 느꼈던 배움의 감동을 우리 지역 아이들에게 전하고자 시작한 지 10년이 되었습니다. 성급하게 재촉하지 않고, 아이마다 다른 생각의 보폭을 따뜻하게 지켜보겠습니다." },
     ],
   },
   {
-    id: "curriculum", label: "커리큘럼",
+    id: "curriculum", label: "커리큘럼 (학년별 세부)",
     fields: [
-      { key: "elem_title", label: "초등부 제목",   type: "text",     defaultValue: "저학년 / 고학년" },
-      { key: "elem_body",  label: "초등부 설명",   type: "textarea", defaultValue: "그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행." },
-      { key: "mid_title",  label: "중등부 제목",   type: "text",     defaultValue: "내신 및 심화 논술" },
-      { key: "mid_body",   label: "중등부 설명",   type: "textarea", defaultValue: "비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성." },
+      { key: "elem_low_head",  label: "초등 저학년 핵심 요약", type: "text",     defaultValue: "그림책에서 줄글책으로, 재미있게 말하고 쓰기" },
+      { key: "elem_low_desc",  label: "초등 저학년 상세 설명", type: "textarea", defaultValue: "독서에 대한 긍정적인 흥미를 키우고 어휘력을 폭넓게 확장합니다. 책을 읽은 뒤 떠오르는 느낌을 자유롭게 말하고, 짧은 문장부터 한 단락의 글을 스스로 써내는 성취감을 배웁니다." },
+      { key: "elem_high_head", label: "초등 고학년 핵심 요약", type: "text",     defaultValue: "교과 연계 배경지식과 논리적인 서술형 글쓰기" },
+      { key: "elem_high_desc", label: "초등 고학년 상세 설명", type: "textarea", defaultValue: "문학 작품뿐 아니라 역사, 사회, 과학 등 교과 연계 비문학 도서를 깊이 있게 다룹니다. 서로 다른 생각을 경청하는 토론을 거쳐 논리적 근거를 갖춘 서술형 논술문을 완성합니다." },
+      { key: "mid_head",       label: "중등 심화반 핵심 요약", type: "text",     defaultValue: "중등 내신 만점과 수능 국어 1등급의 탄탄한 토대" },
+      { key: "mid_desc",       label: "중등 심화반 상세 설명", type: "textarea", defaultValue: "신문 칼럼, 시사 논증, 비판적 독해를 통해 수능 국어 비문학 지문에 대비합니다. 중학교 서술형 내신 평가와 자유학기제 글쓰기 수행평가를 원장이 1:1로 밀착 지도합니다." },
+      { key: "elem_title",     label: "기존 초등부 제목 (참고용)", type: "text",     defaultValue: "저학년 / 고학년" },
+      { key: "elem_body",      label: "기존 초등부 설명 (참고용)", type: "textarea", defaultValue: "그림책과 문학 작품을 통한 흥미 위주의 독서. 주 1회 주제별 글쓰기 및 자유 토론 진행." },
+      { key: "mid_title",      label: "기존 중등부 제목 (참고용)", type: "text",     defaultValue: "내신 및 심화 논술" },
+      { key: "mid_body",       label: "기존 중등부 설명 (참고용)", type: "textarea", defaultValue: "비문학 읽기 및 신문 칼럼 분석. 서술형 평가 대비 및 중등 내신 연계형 심화 논술 작성." },
     ],
   },
   {
-    id: "info", label: "운영 안내",
+    id: "faq", label: "홈화면 빠른 질문 (Quick FAQ)",
+    fields: [
+      { key: "q1", label: "질문 1 제목", type: "text",     defaultValue: "한 반 인원과 수업 시간은 어떻게 되나요?" },
+      { key: "a1", label: "질문 1 답변", type: "textarea", defaultValue: "한 반에 최대 6명 이하 소수 정예로 운영되며, 모든 아이가 충분히 발표하고 경청할 수 있도록 원장이 직접 지도합니다. 수업은 주 1회 80분~100분 과정으로 진행됩니다." },
+      { key: "q2", label: "질문 2 제목", type: "text",     defaultValue: "책을 잘 안 읽는 아이도 적응할 수 있을까요?" },
+      { key: "a2", label: "질문 2 답변", type: "textarea", defaultValue: "처음부터 두꺼운 책을 강요하지 않고, 질문과 대화로 흥미를 여는 '몰입독서' 방식으로 시작합니다. 아이의 눈높이에 맞춰 성취감을 느끼도록 이끕니다." },
+    ],
+  },
+  {
+    id: "info", label: "운영 안내 & 지도",
     fields: [
       { key: "hours",   label: "운영 시간", type: "text", defaultValue: "평일 14:00 ~ 20:00 (주말 및 공휴일 휴무)" },
       { key: "address", label: "주소",     type: "text", defaultValue: "경기 파주시 심학산로 385 운정신도시센트럴푸르지오 상가 2동 204호" },
@@ -1905,9 +1952,9 @@ const SECTIONS = [
     ],
   },
   {
-    id: "contact", label: "상담 문의",
+    id: "contact", label: "상담 문의 & 카카오톡",
     fields: [
-      { key: "desc",    label: "안내 문구",      type: "text", defaultValue: "우리 아이에게 딱 맞는 독서 논술 교육, 지금 바로 상담받아보세요!" },
+      { key: "desc",    label: "안내 문구",      type: "textarea", defaultValue: "우리 아이에게 딱 맞는 독서 논술 교육,\n지금 바로 부담 없이 상담받아보세요!" },
       { key: "kakao",   label: "카카오톡 링크",  type: "text", defaultValue: "http://pf.kakao.com/_xxxxxx" },
     ],
   },
