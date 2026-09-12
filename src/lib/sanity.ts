@@ -1,4 +1,5 @@
 import { createClient, type ClientConfig } from '@sanity/client';
+import { getDeletedReviewIds, getDeletedQnaQuestions } from './sanityDelete';
 
 export interface SanityConfig {
   projectId: string;
@@ -384,13 +385,14 @@ export async function fetchSanityData(): Promise<{
       setPermanentToken(siteSettings.adminToken);
     }
 
-    // Q&A 중복 제거 및 복원
+    // Q&A 중복 제거 및 복원 (사용자가 삭제한 항목 제외)
     if (Array.isArray(qnaItems) && qnaItems.length > 0) {
+      const deletedQnas = getDeletedQnaQuestions();
       const seenQ = new Set<string>();
       const cleanQna: any[] = [];
       for (const item of qnaItems) {
         const qText = (item.question || item.q || '').trim();
-        if (qText && !seenQ.has(qText)) {
+        if (qText && !seenQ.has(qText) && !deletedQnas.has(qText)) {
           seenQ.add(qText);
           cleanQna.push({
             q: qText,
@@ -401,15 +403,16 @@ export async function fetchSanityData(): Promise<{
       result.qnaList = cleanQna;
     }
 
-    // 리뷰(수업 소식) 중복 완벽 제거 및 복원
+    // 리뷰(수업 소식) 중복 완벽 제거 및 복원 (사용자가 삭제한 항목 제외)
     if (Array.isArray(reviewItems) && reviewItems.length > 0) {
+      const deletedReviewIds = getDeletedReviewIds();
       const seenIds = new Set<number>();
       const seenTitles = new Set<string>();
       const cleanReviews: any[] = [];
       for (const item of reviewItems) {
         const rId = Number(item.reviewId || item.id) || 0;
         const titleKey = `${(item.title || '').trim()}_${(item.date || '').trim()}`;
-        if (rId > 0 && !seenIds.has(rId) && !seenTitles.has(titleKey)) {
+        if (rId > 0 && !seenIds.has(rId) && !seenTitles.has(titleKey) && !deletedReviewIds.has(rId)) {
           seenIds.add(rId);
           seenTitles.add(titleKey);
           cleanReviews.push({

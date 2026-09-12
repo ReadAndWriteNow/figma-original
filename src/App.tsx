@@ -17,7 +17,12 @@ import {
   type SanityConfig,
   type SanityTestResult,
 } from "./lib/sanity";
-import { deleteReviewDirectly, deleteQnaDirectly } from "./lib/sanityDelete";
+import {
+  deleteReviewDirectly,
+  deleteQnaDirectly,
+  getDeletedReviewIds,
+  getDeletedQnaQuestions,
+} from "./lib/sanityDelete";
 
 const DEFAULT_VALUES: Record<string, string> = {
   "header.title": "한우리 독서토론논술",
@@ -2482,6 +2487,7 @@ function QnaSectionEditor({ qnaList, onChange }: {
     const target = qnaList[idx];
     const next = qnaList.filter((_, i) => i !== idx);
     onChange(next);
+    saveLocalData(LOCAL_STORAGE_QNA_KEY, next);
     if (editIdx === idx) { setEditIdx(null); setAdding(false); }
     if (target) {
       deleteQnaDirectly(idx, target.q).catch(err => console.warn("Sanity Q&A delete async:", err));
@@ -2603,6 +2609,7 @@ function ReviewSectionEditor({ reviews, onChange }: { reviews: Review[]; onChang
     if (!confirm("이 소식을 삭제할까요?")) return;
     const next = reviews.filter(r => r.id !== id);
     onChange(next);
+    saveLocalData(LOCAL_STORAGE_REVIEWS_KEY, next);
     if (editId === id) cancel();
     deleteReviewDirectly(id).catch(err => console.warn("Sanity Review delete async:", err));
   }
@@ -3634,13 +3641,17 @@ export default function App() {
               return merged;
             });
           }
-          if (remote.qnaList && remote.qnaList.length > 0) {
-            setLiveQna(remote.qnaList);
-            saveLocalData(LOCAL_STORAGE_QNA_KEY, remote.qnaList);
+          if (remote.qnaList !== undefined) {
+            const deletedQnas = getDeletedQnaQuestions();
+            const filtered = (remote.qnaList || []).filter((q: any) => !deletedQnas.has((q.q || '').trim()));
+            setLiveQna(filtered);
+            saveLocalData(LOCAL_STORAGE_QNA_KEY, filtered);
           }
-          if (remote.reviews && remote.reviews.length > 0) {
-            setLiveReviews(remote.reviews);
-            saveLocalData(LOCAL_STORAGE_REVIEWS_KEY, remote.reviews);
+          if (remote.reviews !== undefined) {
+            const deletedRevIds = getDeletedReviewIds();
+            const filtered = (remote.reviews || []).filter((r: any) => !deletedRevIds.has(Number(r.id)));
+            setLiveReviews(filtered);
+            saveLocalData(LOCAL_STORAGE_REVIEWS_KEY, filtered);
           }
         }
       }).catch(e => {
