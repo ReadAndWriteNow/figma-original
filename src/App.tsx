@@ -17,6 +17,7 @@ import {
   type SanityConfig,
   type SanityTestResult,
 } from "./lib/sanity";
+import { deleteReviewDirectly, deleteQnaDirectly } from "./lib/sanityDelete";
 
 const DEFAULT_VALUES: Record<string, string> = {
   "header.title": "한우리 독서토론논술",
@@ -2478,8 +2479,13 @@ function QnaSectionEditor({ qnaList, onChange }: {
 
   function deleteItem(idx: number) {
     if (!confirm("이 Q&A를 삭제할까요?")) return;
-    onChange(qnaList.filter((_, i) => i !== idx));
+    const target = qnaList[idx];
+    const next = qnaList.filter((_, i) => i !== idx);
+    onChange(next);
     if (editIdx === idx) { setEditIdx(null); setAdding(false); }
+    if (target) {
+      deleteQnaDirectly(idx, target.q).catch(err => console.warn("Sanity Q&A delete async:", err));
+    }
   }
 
   function moveItem(idx: number, dir: -1 | 1) {
@@ -2595,8 +2601,10 @@ function ReviewSectionEditor({ reviews, onChange }: { reviews: Review[]; onChang
 
   function del(id: number) {
     if (!confirm("이 소식을 삭제할까요?")) return;
-    onChange(reviews.filter(r => r.id !== id));
+    const next = reviews.filter(r => r.id !== id);
+    onChange(next);
     if (editId === id) cancel();
+    deleteReviewDirectly(id).catch(err => console.warn("Sanity Review delete async:", err));
   }
 
   const editing = editId !== null || adding;
