@@ -628,6 +628,157 @@ function ParentEmpathyDialogueSection({ values }: { values?: Record<string, stri
   );
 }
 
+/* ─── 헤드라인 물결 밑줄 & 포인트 컬러 하이라이터 ─── */
+function renderFormattedHeadline(text: string) {
+  if (!text) return null;
+  const lines = text.split("\n");
+
+  return lines.map((line, lineIdx) => {
+    // 1. 마크다운 볼드 **텍스트**로 사용자가 수동 강조 지정한 경우
+    if (line.includes("**")) {
+      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+      return (
+        <span key={lineIdx} className="block">
+          {parts.map((part, pIdx) => {
+            if (part.startsWith("**") && part.endsWith("**")) {
+              const content = part.slice(2, -2);
+              return (
+                <span
+                  key={pIdx}
+                  className="text-[#EA580C] underline decoration-orange-300 decoration-wavy decoration-2 underline-offset-6 md:underline-offset-8 inline-block font-black"
+                >
+                  {content}
+                </span>
+              );
+            }
+            return part;
+          })}
+        </span>
+      );
+    }
+
+    // 2. 키워드 ("문해력 깊이", "문해력의 깊이", "문해력", "생각의 깊이", "표현하는 아이" 등) 자동 하이라이트
+    const regex = /(문해력 깊이|문해력의 깊이|문해력|생각의 깊이|표현하는 아이로|표현하는 아이)/g;
+    const parts = line.split(regex);
+
+    return (
+      <span key={lineIdx} className="block">
+        {parts.map((part, pIdx) => {
+          if (
+            part === "문해력 깊이" ||
+            part === "문해력의 깊이" ||
+            part === "문해력" ||
+            part === "생각의 깊이" ||
+            part === "표현하는 아이로" ||
+            part === "표현하는 아이"
+          ) {
+            return (
+              <span
+                key={pIdx}
+                className="text-[#EA580C] underline decoration-orange-300 decoration-wavy decoration-2 underline-offset-6 md:underline-offset-8 inline-block font-black"
+              >
+                {part}
+              </span>
+            );
+          }
+          return part;
+        })}
+      </span>
+    );
+  });
+}
+
+/* ─── 한우리 공식 브랜드 로고 컴포넌트 (심볼 좌측 전용 배치 & 1:1 비율 보장) ─── */
+function HanwooriLogo({
+  subtitle = "파주운정 산내푸르지오 독서교실",
+  customLogoUrl = "",
+  size = "md",
+}: {
+  subtitle?: string;
+  customLogoUrl?: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  if (customLogoUrl) {
+    return (
+      <div className="flex items-center gap-2.5">
+        <img
+          src={customLogoUrl}
+          alt="한우리 독서토론논술"
+          className={size === "sm" ? "h-8 object-contain" : size === "lg" ? "h-14 object-contain" : "h-10 object-contain"}
+        />
+        {subtitle && (
+          <span className="text-[10px] md:text-xs font-bold text-stone-500 tracking-tight">
+            {subtitle}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  const isSm = size === "sm";
+  const isLg = size === "lg";
+
+  return (
+    <div className="flex items-center gap-2.5 md:gap-3 select-none">
+      {/* 1. 오렌지 생각풍선 심볼 이미지 (원본 1:1 무왜곡 렌더링) */}
+      <img
+        src="/hanwoori-symbol.svg"
+        alt="한우리 심볼"
+        className={
+          isSm
+            ? "w-7 h-7 shrink-0 aspect-square object-contain"
+            : isLg
+            ? "w-11 h-11 shrink-0 aspect-square object-contain"
+            : "w-8.5 h-8.5 md:w-10 md:h-10 shrink-0 aspect-square object-contain"
+        }
+      />
+
+      {/* 2. 브랜드명 & 지점명 */}
+      <div className="flex flex-col justify-center">
+        <div className="flex items-baseline leading-none">
+          <span
+            className={
+              isSm
+                ? "font-extrabold text-[#383838] text-[15px] tracking-tight font-sans"
+                : isLg
+                ? "font-extrabold text-[#383838] text-[22px] tracking-tight font-sans"
+                : "font-extrabold text-[#383838] text-[16px] md:text-[19px] tracking-tight font-sans"
+            }
+          >
+            한우리
+          </span>
+          <span
+            className={
+              isSm
+                ? "font-bold text-[#686868] text-[11px] tracking-tight font-sans ml-1"
+                : isLg
+                ? "font-bold text-[#686868] text-[15px] tracking-tight font-sans ml-1.5"
+                : "font-bold text-[#686868] text-[12px] md:text-[14px] tracking-tight font-sans ml-1 md:ml-1.5"
+            }
+          >
+            독서토론논술
+          </span>
+        </div>
+
+        {/* 지점 서브텍스트 */}
+        {subtitle && (
+          <p
+            className={
+              isSm
+                ? "text-[9.5px] font-medium text-stone-500 mt-0.5 tracking-tight leading-none"
+                : isLg
+                ? "text-[12px] font-medium text-stone-500 mt-1 tracking-tight leading-none"
+                : "text-[10px] md:text-[11px] font-medium text-stone-500 mt-0.5 md:mt-1 tracking-tight leading-none"
+            }
+          >
+            {subtitle}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════
    MOBILE LAYOUT (프리미엄 에디토리얼 마케팅 디자인)
 ═══════════════════════════════════════ */
@@ -656,17 +807,14 @@ function MobileLayout({
   return (
     <div style={{ wordBreak: "keep-all" }} className="min-h-screen bg-[#FAFAF9] text-[#0F172A] pb-22">
 
-      {/* 1. 상단 고정 모바일 헤더 (컴팩트 & 넉넉한 타이틀 여백) */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 px-4 py-2.5 shadow-xs">
+      {/* 1. 상단 고정 모바일 헤더 (공식 로고 & 서브타이틀) */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 px-3.5 py-2.5 shadow-xs">
         <div className="flex items-center justify-between">
-          <div className="flex flex-col justify-center mr-3">
-            <h1 className="font-serif-kr text-[15px] font-black text-[#0F172A] leading-tight tracking-tight">
-              {values["header.title"] || "한우리 독서토론논술"}
-            </h1>
-            <p className="text-[10px] font-semibold text-stone-500 mt-0.5 tracking-tight">
-              파주운정 산내푸르지오 독서교실
-            </p>
-          </div>
+          <HanwooriLogo
+            subtitle={values["header.subtitle"] || "파주운정 산내푸르지오 독서교실"}
+            customLogoUrl={values["header.logoUrl"]}
+            size="sm"
+          />
           
           <div className="flex items-center gap-1.5 shrink-0">
             <a
@@ -676,7 +824,7 @@ function MobileLayout({
               className="px-2.5 py-1.5 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-[11px] font-bold shadow-xs active:scale-95 transition flex items-center gap-1"
             >
               <span>💬</span>
-              <span>1:1 상담예약</span>
+              <span>1:1 상담</span>
             </a>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
@@ -735,8 +883,9 @@ function MobileLayout({
 
           {/* 메인 헤드라인 */}
           <h2 className="font-serif-kr text-[23px] font-black text-[#0F172A] leading-snug tracking-tight mb-2.5">
-            스마트폰에 빼앗긴 문해력,<br />
-            스스로 생각하고 <span className="text-[#EA580C] underline decoration-orange-200 decoration-wavy underline-offset-6">표현하는 아이로</span>
+            {renderFormattedHeadline(
+              values["intro.headline"] || "스마트폰에 빼앗긴 문해력,\n스스로 생각하는 문해력 깊이를 키웁니다"
+            )}
           </h2>
 
           <p className="text-xs font-medium text-stone-600 leading-relaxed mb-4">
@@ -1267,14 +1416,13 @@ function PCLayout({
 
       {/* 1. 상단 고정 네비게이션 바 */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs">
-        <div className="max-w-6xl mx-auto px-8 py-3 flex items-center justify-between">
-          <div className="flex flex-col justify-center mr-8 lg:mr-12">
-            <h1 className="font-serif-kr text-xl font-black text-[#0F172A] leading-tight tracking-tight">
-              {values["header.title"] || "한우리 독서토론논술"}
-            </h1>
-            <p className="text-xs font-semibold text-stone-500 mt-0.5 tracking-tight">
-              파주운정 산내푸르지오 독서교실
-            </p>
+        <div className="max-w-6xl mx-auto px-8 py-3.5 flex items-center justify-between">
+          <div className="mr-8 lg:mr-12">
+            <HanwooriLogo
+              subtitle={values["header.subtitle"] || "파주운정 산내푸르지오 독서교실"}
+              customLogoUrl={values["header.logoUrl"]}
+              size="md"
+            />
           </div>
 
           <nav className="flex items-center gap-6 lg:gap-8">
@@ -1321,8 +1469,10 @@ function PCLayout({
               <span>{values["intro.badge"] || "10년 경력 유아교육 전공 원장 직강 · 1반 6인 이하 소수 정예 몰입수업"}</span>
             </div>
 
-            <h2 className="font-serif-kr text-5xl font-black text-[#0F172A] leading-[1.25] tracking-tight mb-5 whitespace-pre-line">
-              {values["intro.headline"] || "책을 읽는 아이에서,\n스스로 생각하고 표현하는 아이로"}
+            <h2 className="font-serif-kr text-5xl font-black text-[#0F172A] leading-[1.25] tracking-tight mb-5">
+              {renderFormattedHeadline(
+                values["intro.headline"] || "스마트폰에 빼앗긴 문해력,\n스스로 생각하는 문해력 깊이를 키웁니다"
+              )}
             </h2>
 
             <p className="text-xl font-medium text-stone-700 leading-relaxed mb-3">
@@ -2227,17 +2377,18 @@ function saveStoredAdminPassword(newPw: string): void {
 
 const SECTIONS = [
   {
-    id: "header", label: "헤더",
+    id: "header", label: "헤더 & 브랜드 로고",
     fields: [
       { key: "title",    label: "메인 제목",  type: "text",     defaultValue: "한우리 독서토론논술" },
-      { key: "subtitle", label: "부제목",     type: "text",     defaultValue: "파주운정 산내푸르지오 독서교실" },
+      { key: "subtitle", label: "부제목(지점명)", type: "text",     defaultValue: "파주운정 산내푸르지오 독서교실" },
+      { key: "logoUrl",  label: "로고 커스텀 이미지 (비워둘 시 한우리 공식 심볼&로고 자동 적용)", type: "image", defaultValue: "" },
     ],
   },
   {
     id: "intro", label: "히어로 & 4대 안심 포인트",
     fields: [
       { key: "badge",    label: "상단 타깃 뱃지", type: "text",     defaultValue: "파주운정 산내푸르지오 · 10년 원장 직강 소수정예" },
-      { key: "headline", label: "메인 헤드라인 (줄바꿈 가능)", type: "textarea", defaultValue: "스마트폰에 빼앗긴 문해력,\n스스로 생각하고 표현하는 아이로" },
+      { key: "headline", label: "메인 헤드라인 (줄바꿈 가능, **강조** 지원)", type: "textarea", defaultValue: "스마트폰에 빼앗긴 문해력,\n스스로 생각하는 문해력 깊이를 키웁니다" },
       { key: "quote",    label: "인용 문구",     type: "text",     defaultValue: "아이의 생각이 깊어지고, 읽는 기쁨이 자라나는 따뜻한 공간" },
       { key: "sub",      label: "보조 문구",     type: "text",     defaultValue: "스스로 생각의 씨앗을 틔울 수 있도록 돕습니다." },
       { key: "point1_title", label: "1번째 안심 포인트 제목", type: "text", defaultValue: "10년 원장 직강" },
