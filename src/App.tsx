@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import hanwooriSymbolPng from "./imports/image-1.png";
 import {
   getSanityConfig,
   saveLocalSanityConfig,
@@ -704,7 +705,7 @@ function HanwooriLogo({
 }) {
   const isSm = size === "sm";
   const isLg = size === "lg";
-  const symbolSrc = customSymbolUrl || "/hanwoori-symbol.svg";
+  const symbolSrc = customSymbolUrl || hanwooriSymbolPng;
 
   return (
     <div className="relative inline-flex items-center">
