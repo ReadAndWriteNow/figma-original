@@ -2192,7 +2192,6 @@ function ReviewPage({ onBack, reviews }: { onBack: () => void; reviews: Review[]
 }
 
 function QnaPage({ onBack, items, values }: { onBack: () => void; items?: QnaItem[]; values?: Record<string, string> }) {
-  const [viewMode, setViewMode] = useState<"dialogue" | "compact">("dialogue");
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const list = items ?? QNA_LIST;
   const kakaoUrl = values?.["contact.kakao"] || "http://pf.kakao.com/_xxxxxx";
@@ -2206,43 +2205,23 @@ function QnaPage({ onBack, items, values }: { onBack: () => void; items?: QnaIte
         <div className="max-w-3xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between gap-4">
           <div className="flex flex-col justify-center">
             <h1 className="font-serif-kr text-base md:text-lg font-black text-[#0F172A] leading-tight">
-              {values?.["header.title"] || "한우리 독서토론논술"} 자주 묻는 질문
+              자주 묻는 질문
             </h1>
             <p className="text-[11px] text-stone-500 mt-0.5">
-              {values?.["header.subtitle"] || "파주운정 산내푸르지오 교실"} 학부모 안내
+              학부모님들이 자주 하시는 질문과 답변
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex bg-stone-100 p-1 rounded-xl border border-stone-200/80">
-              <button
-                onClick={() => setViewMode("dialogue")}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
-                  viewMode === "dialogue" ? "bg-white text-[#EA580C] shadow-2xs" : "text-stone-500 hover:text-stone-800"
-                }`}
-              >
-                💬 대화형
-              </button>
-              <button
-                onClick={() => setViewMode("compact")}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
-                  viewMode === "compact" ? "bg-white text-[#EA580C] shadow-2xs" : "text-stone-500 hover:text-stone-800"
-                }`}
-              >
-                📋 요약형
-              </button>
-            </div>
-            <button
-              onClick={onBack}
-              className="shrink-0 flex items-center gap-1.5 bg-white hover:bg-stone-100 text-stone-800 text-xs font-bold px-3.5 py-2 rounded-xl border border-stone-200/80 transition active:scale-95 shadow-2xs"
-            >
-              ← 홈으로
-            </button>
-          </div>
+          <button
+            onClick={onBack}
+            className="shrink-0 flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold px-3.5 py-2 rounded-xl border border-stone-200/80 transition active:scale-95"
+          >
+            ← 홈으로
+          </button>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 md:px-8 py-8 md:py-12">
-        {/* 상단 액자형 방사 배너 */}
+        {/* 상단 배너 */}
         <div className="bg-white border-2 border-[#0F172A] rounded-3xl p-6 md:p-8 mb-8 shadow-xs text-center relative overflow-hidden">
           <div className="absolute inset-1.5 md:inset-2.5 rounded-[20px] md:rounded-[22px] border border-[#BAE6FD]/60 pointer-events-none" />
           
@@ -2252,7 +2231,7 @@ function QnaPage({ onBack, items, values }: { onBack: () => void; items?: QnaIte
           />
 
           <p className="text-xs md:text-sm text-stone-600 max-w-lg mx-auto leading-relaxed mt-1 mb-5">
-            수업 커리큘럼, 소수 정예 원장 직강, 입회 절차에 대해 궁금하신 점을 대화 형식으로 쉽게 풀어드렸습니다.
+            수업 커리큘럼, 소수 정예 원장 직강, 입회 절차에 대해 학부모님께서 자주 질문하시는 내용을 정리해 드립니다.
           </p>
 
           <a
@@ -2266,63 +2245,48 @@ function QnaPage({ onBack, items, values }: { onBack: () => void; items?: QnaIte
           </a>
         </div>
 
-        {/* 1. 대화형 뷰 (참고 이미지 완벽 재현 템플릿) */}
-        {viewMode === "dialogue" ? (
-          <div className="space-y-6">
-            {list.map((item, idx) => (
-              <ConversationalDialogueCard
-                key={idx}
-                tag={`질문 0${idx + 1}`}
-                question={item.q}
-                answerHtml={item.a.replace(/\n\n/g, "<br><br>")}
-                badgeText="원장 직강 교육 가이드"
-              />
-            ))}
-          </div>
-        ) : (
-          /* 2. 요약 아코디언 뷰 */
-          <div className="space-y-3">
-            {list.map((item, idx) => (
-              <div
-                key={idx}
-                className="bg-white border border-stone-200/80 rounded-2xl overflow-hidden shadow-xs hover:border-orange-200 transition-all duration-200"
+        {/* 자주 묻는 질문 아코디언 목록 */}
+        <div className="space-y-3">
+          {list.map((item, idx) => (
+            <div
+              key={idx}
+              className="bg-white border border-stone-200/80 rounded-2xl overflow-hidden shadow-xs hover:border-orange-200 transition-all duration-200"
+            >
+              <button
+                onClick={() => setOpenIdx(openIdx === idx ? null : idx)}
+                className="w-full text-left px-5 md:px-6 py-5 flex items-start gap-3.5 cursor-pointer"
               >
-                <button
-                  onClick={() => setOpenIdx(openIdx === idx ? null : idx)}
-                  className="w-full text-left px-5 md:px-6 py-5 flex items-start gap-3.5 cursor-pointer"
+                <span className="shrink-0 w-7 h-7 rounded-lg bg-orange-100 text-[#EA580C] text-xs font-black flex items-center justify-center mt-0.5">
+                  Q
+                </span>
+                <span className="flex-1 font-bold text-[#0F172A] text-sm md:text-base leading-snug">
+                  {item.q}
+                </span>
+                <span
+                  className={`shrink-0 w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 text-xs transition-transform duration-200 ${
+                    openIdx === idx ? "rotate-180 bg-orange-100 text-[#EA580C]" : ""
+                  }`}
                 >
-                  <span className="shrink-0 w-7 h-7 rounded-lg bg-orange-100 text-[#EA580C] text-xs font-black flex items-center justify-center mt-0.5">
-                    Q
-                  </span>
-                  <span className="flex-1 font-bold text-[#0F172A] text-sm md:text-base leading-snug">
-                    {item.q}
-                  </span>
-                  <span
-                    className={`shrink-0 w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 text-xs transition-transform duration-200 ${
-                      openIdx === idx ? "rotate-180 bg-orange-100 text-[#EA580C]" : ""
-                    }`}
-                  >
-                    ▼
-                  </span>
-                </button>
-                {openIdx === idx && (
-                  <div className="px-5 md:px-6 pb-6 pt-3 border-t border-stone-100 bg-[#FAF9F6]">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="w-6 h-6 rounded-lg bg-[#EA580C] text-white text-xs font-black flex items-center justify-center shrink-0">
-                        A
-                      </span>
-                      <span className="text-xs font-bold text-[#EA580C]">원장 직강 교육 가이드</span>
-                    </div>
-                    <div
-                      className="text-xs md:text-sm text-stone-600 leading-relaxed [&_img]:w-full [&_img]:rounded-xl [&_img]:mt-3 [&_strong]:text-[#0F172A] [&_strong]:font-bold"
-                      dangerouslySetInnerHTML={{ __html: item.a.replace(/\n\n/g, "<br><br>") }}
-                    />
+                  ▼
+                </span>
+              </button>
+              {openIdx === idx && (
+                <div className="px-5 md:px-6 pb-6 pt-3 border-t border-stone-100 bg-[#FAF9F6]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-6 h-6 rounded-lg bg-[#EA580C] text-white text-xs font-black flex items-center justify-center shrink-0">
+                      A
+                    </span>
+                    <span className="text-xs font-bold text-[#EA580C]">원장 직강 교육 가이드</span>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                  <div
+                    className="text-xs md:text-sm text-stone-600 leading-relaxed [&_img]:w-full [&_img]:rounded-xl [&_img]:mt-3 [&_strong]:text-[#0F172A] [&_strong]:font-bold"
+                    dangerouslySetInnerHTML={{ __html: item.a.replace(/\n\n/g, "<br><br>") }}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
 
         {/* 하단 CTA */}
         <div className="mt-10 bg-white border border-orange-200/80 rounded-3xl p-8 text-center shadow-xs">
